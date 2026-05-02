@@ -120,7 +120,7 @@ Chatrix is designed to go beyond traditional chat applications by integrating:
 
 ### Database
 
-* PostgreSQL (recommended) / MongoDB
+* PostgreSQL
 
 ### Storage
 
@@ -143,7 +143,7 @@ Frontend (Next.js)
         ↓
 Backend API (Node.js + Express)
         ↓
-Database (PostgreSQL / MongoDB)
+Database (PostgreSQL)
         ↓
 Realtime Layer (Socket.IO)
         ↓
@@ -381,11 +381,6 @@ Focus first on:
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome!
-Feel free to fork and submit pull requests.
-
 ---
 
 ## 📜 License
@@ -397,4 +392,4 @@ This project is licensed under the MIT License.
 ## 👨‍💻 Author
 
 **Mayank Mishra**
-B.Tech CSE (AI/ML)
+B.Tech CSE 
