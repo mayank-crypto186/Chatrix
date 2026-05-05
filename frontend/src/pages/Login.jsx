@@ -1,40 +1,3 @@
-<<<<<<< HEAD
-import React from "react";
-import { Link } from "react-router-dom";
-import "./Auth.css";
-
-function Login() {
-  return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h2>Welcome Back 👋</h2>
-        <p>Login to continue to Chatrix</p>
-
-        <form>
-          <div className="input-group">
-            <label>Email</label>
-            <input type="email" placeholder="Enter your email" required />
-          </div>
-
-          <div className="input-group">
-            <label>Password</label>
-            <input type="password" placeholder="Enter your password" required />
-          </div>
-
-          <div className="auth-options">
-            <Link to="/forgot-password">Forgot Password?</Link>
-          </div>
-
-          <button type="submit" className="auth-btn">
-            Login
-          </button>
-        </form>
-
-        <p className="switch-text">
-          Don&apos;t have an account? <Link to="/register">Register</Link>
-        </p>
-      </div>
-=======
 import { useState } from "react";
 import { Mail, Lock, Eye, MessageCircle, ShieldCheck, Cloud } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -51,9 +14,9 @@ function Login() {
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
-    setFormData({ 
-      ...formData, 
-      [e.target.name]: e.target.value 
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -66,7 +29,6 @@ function Login() {
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      setMessage("Login successful");
       navigate("/dashboard");
     } catch (error) {
       setMessage(error.response?.data?.message || "Login failed");
@@ -103,11 +65,27 @@ function Login() {
             Sign in to continue your conversations, stories and more.
           </p>
 
-          <Feature icon={<MessageCircle />} title="Connect Instantly" text="Chat with friends, share stories and stay in touch." />
-          <Feature icon={<ShieldCheck />} title="Private & Secure" text="Your privacy is our priority. Your data is safe with us." />
-          <Feature icon={<Cloud />} title="Cloud Sync" text="Access your chats and media from anywhere, anytime." />
+          <Feature
+            icon={<MessageCircle />}
+            title="Connect Instantly"
+            text="Chat with friends, share stories and stay in touch."
+          />
 
-          <p className="mt-20 text-white">© 2026 Chatrix. All rights reserved.</p>
+          <Feature
+            icon={<ShieldCheck />}
+            title="Private & Secure"
+            text="Your privacy is our priority. Your data is safe with us."
+          />
+
+          <Feature
+            icon={<Cloud />}
+            title="Cloud Sync"
+            text="Access your chats and media from anywhere, anytime."
+          />
+
+          <p className="mt-20 text-white">
+            © 2026 Chatrix. All rights reserved.
+          </p>
         </div>
 
         <div className="flex justify-center">
@@ -135,6 +113,7 @@ function Login() {
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full outline-none"
+                    required
                   />
                 </div>
               </div>
@@ -152,6 +131,7 @@ function Login() {
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full outline-none"
+                    required
                   />
                   <Eye className="text-slate-400" size={22} />
                 </div>
@@ -161,7 +141,10 @@ function Login() {
                 <p className="text-center text-sm text-red-500">{message}</p>
               )}
 
-              <button className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg">
+              <button
+                type="submit"
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg"
+              >
                 Login
               </button>
             </form>
@@ -192,7 +175,6 @@ function Feature({ icon, title, text }) {
         <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         <p className="text-slate-600 mt-2">{text}</p>
       </div>
->>>>>>> cb5dd51 (Making the authentication pages and redirecting to dashboard)
     </div>
   );
 }
