@@ -1,49 +1,13 @@
-<<<<<<< HEAD
-import React from "react";
-import { Link } from "react-router-dom";
-import "./Auth.css";
-
-function Login() {
-  return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <h2>Welcome Back 👋</h2>
-        <p>Login to continue to Chatrix</p>
-
-        <form>
-          <div className="input-group">
-            <label>Email</label>
-            <input type="email" placeholder="Enter your email" required />
-          </div>
-
-          <div className="input-group">
-            <label>Password</label>
-            <input type="password" placeholder="Enter your password" required />
-          </div>
-
-          <div className="auth-options">
-            <Link to="/forgot-password">Forgot Password?</Link>
-          </div>
-
-          <button type="submit" className="auth-btn">
-            Login
-          </button>
-        </form>
-
-        <p className="switch-text">
-          Don&apos;t have an account? <Link to="/register">Register</Link>
-        </p>
-      </div>
-=======
 import { useState } from "react";
-import { Mail, Lock, Eye, MessageCircle, ShieldCheck, Cloud } from "lucide-react";
+import { User, Mail, Lock, MessageCircle, ShieldCheck, Cloud } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../api/authApi";
+import { signupUser } from "../api/authApi";
 
-function Login() {
+function Signup() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
   });
@@ -57,19 +21,21 @@ function Login() {
     });
   };
 
-  const handleLogin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await loginUser(formData);
+      const res = await signupUser(formData);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      setMessage("Login successful");
+      setMessage("Signup successful");
       navigate("/dashboard");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Login failed");
+      console.log("Signup error:", error);
+      console.log("Backend response:", error.response?.data);
+      setMessage(error.response?.data?.message || "Signup failed");
     }
   };
 
@@ -86,9 +52,9 @@ function Login() {
         </div>
 
         <p className="text-slate-700">
-          Don&apos;t have an account?{" "}
-          <Link to="/signup" className="text-blue-600 font-semibold">
-            Sign Up
+          Already have an account?{" "}
+          <Link to="/login" className="text-blue-600 font-semibold">
+            Login
           </Link>
         </p>
       </div>
@@ -96,32 +62,47 @@ function Login() {
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 px-16 py-8 gap-10 items-center">
         <div className="max-w-xl">
           <h2 className="text-6xl font-bold text-slate-900 mb-6">
-            Welcome Back! 👋
+            Join Chatrix 🌊
           </h2>
 
           <p className="text-2xl text-slate-600 mb-12">
-            Sign in to continue your conversations, stories and more.
+            Create your account and start chatting with your world.
           </p>
 
           <Feature icon={<MessageCircle />} title="Connect Instantly" text="Chat with friends, share stories and stay in touch." />
           <Feature icon={<ShieldCheck />} title="Private & Secure" text="Your privacy is our priority. Your data is safe with us." />
           <Feature icon={<Cloud />} title="Cloud Sync" text="Access your chats and media from anywhere, anytime." />
-
-          <p className="mt-20 text-white">© 2026 Chatrix. All rights reserved.</p>
         </div>
 
         <div className="flex justify-center">
           <div className="w-full max-w-xl bg-white/90 backdrop-blur-xl rounded-[28px] shadow-2xl p-12">
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold text-slate-900">
-                Login to Chatrix
+                Create Account
               </h2>
               <p className="text-slate-500 mt-3">
-                Welcome back! Please enter your details.
+                Sign up to start using Chatrix.
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleSignup} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Full Name
+                </label>
+                <div className="flex items-center border rounded-xl px-4 py-4">
+                  <User className="text-slate-400 mr-3" size={22} />
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full outline-none"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold mb-2">
                   Email Address
@@ -148,12 +129,11 @@ function Login() {
                   <input
                     type="password"
                     name="password"
-                    placeholder="••••••••"
+                    placeholder="Create password"
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full outline-none"
                   />
-                  <Eye className="text-slate-400" size={22} />
                 </div>
               </div>
 
@@ -162,7 +142,7 @@ function Login() {
               )}
 
               <button className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-400 text-white font-semibold shadow-lg">
-                Login
+                Sign Up
               </button>
             </form>
 
@@ -192,9 +172,8 @@ function Feature({ icon, title, text }) {
         <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         <p className="text-slate-600 mt-2">{text}</p>
       </div>
->>>>>>> cb5dd51 (Making the authentication pages and redirecting to dashboard)
     </div>
   );
 }
 
-export default Login;
+export default Signup;
