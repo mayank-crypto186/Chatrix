@@ -1,0 +1,233 @@
+.dashboard {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 20px;
+  padding: 20px;
+  color: white;
+  background:
+    linear-gradient(rgba(10, 25, 80, 0.65), rgba(10, 15, 40, 0.9)),
+    url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+}
+
+.sidebar,
+.main,
+.right-panel .widget,
+.friends-box {
+  background: rgba(30, 70, 150, 0.35);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.sidebar {
+  padding: 22px;
+}
+
+.brand {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-bottom: 24px;
+}
+
+.profile-card img,
+.top-icons img,
+.friend-card img,
+.story img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-card h3,
+.profile-card p {
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+nav a.active,
+nav a:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.main {
+  padding: 20px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.search {
+  width: 55%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.search input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 16px;
+}
+
+.search input::placeholder {
+  color: #dbeafe;
+}
+
+.top-icons {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stories h2,
+.friends-box h2,
+.widget h2 {
+  margin-top: 0;
+}
+
+.story-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.story {
+  text-align: center;
+  font-weight: 700;
+}
+
+.story.add {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  display: grid;
+  place-items: center;
+}
+
+.friends-box {
+  padding: 18px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title button,
+.msg-btn,
+.more-btn {
+  border: none;
+  color: white;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.friend-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.friend-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.widget {
+  padding: 18px;
+}
+
+.widget p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.widget span {
+  color: #c7d2fe;
+}
+
+.trend {
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  font-weight: 700;
+}
+
+@media (max-width: 1000px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .right-panel {
+    display: none;
+  }
+
+  .search {
+    width: 70%;
+  }
+}

@@ -1,33 +1,124 @@
-import { useNavigate } from "react-router-dom";
+import {
+  Home,
+  MessageCircle,
+  Phone,
+  Bell,
+  Search,
+  Plus,
+  MoreHorizontal,
+  Users,
+  Bookmark,
+  UserPlus,
+  Gamepad2,
+} from "lucide-react";
+import "./Dashboard.css";
+
+const friends = [
+  { name: "Chris", status: "online" },
+  { name: "Jane", status: "online" },
+  { name: "Nick", status: "away" },
+  { name: "Samantha", status: "online" },
+];
+
+const stories = ["Emily", "Mark", "Sophia"];
 
 function Dashboard() {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-cyan-100 p-10">
-      <div className="bg-white rounded-3xl shadow-xl p-10">
-        <h1 className="text-4xl font-bold text-slate-900">
-          Welcome to Chatrix, {user?.name} 👋
-        </h1>
+    <div className="dashboard">
+      <aside className="sidebar">
+        <div className="brand">💫 Chatrix</div>
 
-        <p className="text-slate-600 mt-3">
-          Your login/signup system is working successfully.
-        </p>
+        <div className="profile-card">
+          <img src="https://i.pravatar.cc/100?img=32" />
+          <div>
+            <h3>Alex Carter</h3>
+            <p>Busy 🔴</p>
+          </div>
+        </div>
 
-        <button
-          onClick={logout}
-          className="mt-8 px-6 py-3 bg-red-500 text-white rounded-xl"
-        >
-          Logout
-        </button>
-      </div>
+        <nav>
+          <a><Home /> Home</a>
+          <a className="active"><MessageCircle /> Chat</a>
+          <a><Bell /> Stories</a>
+          <a><Phone /> Calls</a>
+          <a><UserPlus /> Requests</a>
+          <a><Users /> Inner Circle</a>
+          <a><Bookmark /> Pinned Chat</a>
+        </nav>
+      </aside>
+
+      <main className="main">
+        <header className="topbar">
+          <div className="search">
+            <Search size={20} />
+            <input placeholder="Search..." />
+          </div>
+
+          <div className="top-icons">
+            <Bell />
+            <MessageCircle />
+            <img src="https://i.pravatar.cc/100?img=32" />
+          </div>
+        </header>
+
+        <section className="stories">
+          <h2>Stories</h2>
+          <div className="story-row">
+            <div className="story add">
+              <Plus />
+              <span>Add Story</span>
+            </div>
+
+            {stories.map((story, index) => (
+              <div className="story" key={story}>
+                <img src={`https://i.pravatar.cc/100?img=${index + 20}`} />
+                <span>{story}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="friends-box">
+          <div className="section-title">
+            <h2>Friends</h2>
+            <button><Plus size={18} /> Message</button>
+          </div>
+
+          {friends.map((friend, index) => (
+            <div className="friend-card" key={friend.name}>
+              <div className="friend-info">
+                <img src={`https://i.pravatar.cc/100?img=${index + 40}`} />
+                <h3>{friend.name}</h3>
+              </div>
+
+              <button className="msg-btn">Message</button>
+              <button className="more-btn"><MoreHorizontal /></button>
+            </div>
+          ))}
+        </section>
+      </main>
+
+      <aside className="right-panel">
+        <div className="widget">
+          <h2>Stories</h2>
+          <p>Sophia <span>1h</span></p>
+          <p>Mark <span>10m</span></p>
+        </div>
+
+        <div className="widget">
+          <h2>Trending Posts</h2>
+          <div className="trend">Weekend Getaway 🌅</div>
+          <div className="trend">Tech Trends 2026 📱</div>
+        </div>
+
+        <div className="widget">
+          <h2>Status</h2>
+          <p>📚 Studying</p>
+          <p><Gamepad2 size={18} /> Gaming</p>
+          <p>🟢 Free to Chat</p>
+          <p>🔴 Busy</p>
+        </div>
+      </aside>
     </div>
   );
 }
