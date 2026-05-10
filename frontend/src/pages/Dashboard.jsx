@@ -14,13 +14,13 @@ import {
 import "./Dashboard.css";
 
 const friends = [
-  { name: "Chris", status: "online" },
-  { name: "Jane", status: "online" },
-  { name: "Nick", status: "away" },
-  { name: "Samantha", status: "online" },
+  { name: "Aayushi", status: "online" },
+  { name: "Rishit", status: "online" },
+  { name: "Shivani", status: "away" },
+  { name: "Anisha", status: "online" },
 ];
 
-const stories = ["Emily", "Mark", "Sophia"];
+const stories = ["Shivam", "Nishant", "Harshika"];
 
 function Dashboard() {
   return (
@@ -31,7 +31,7 @@ function Dashboard() {
         <div className="profile-card">
           <img src="https://i.pravatar.cc/100?img=32" />
           <div>
-            <h3>Alex Carter</h3>
+            <h3>Mayank</h3>
             <p>Busy 🔴</p>
           </div>
         </div>
@@ -101,8 +101,8 @@ function Dashboard() {
       <aside className="right-panel">
         <div className="widget">
           <h2>Stories</h2>
-          <p>Sophia <span>1h</span></p>
-          <p>Mark <span>10m</span></p>
+          <p>Anushna <span>1h</span></p>
+          <p>Rahul <span>10m</span></p>
         </div>
 
         <div className="widget">
