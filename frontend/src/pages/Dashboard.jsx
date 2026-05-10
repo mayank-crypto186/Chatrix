@@ -12,6 +12,7 @@ import {
   Gamepad2,
 } from "lucide-react";
 import "./Dashboard.css";
+import { useNavigate } from "react-router-dom";
 
 const friends = [
   { name: "Aayushi", status: "online" },
@@ -23,6 +24,7 @@ const friends = [
 const stories = ["Shivam", "Nishant", "Harshika"];
 
 function Dashboard() {
+  const navigate = useNavigate();
   return (
     <div className="dashboard">
       <aside className="sidebar">
@@ -38,7 +40,9 @@ function Dashboard() {
 
         <nav>
           <a><Home /> Home</a>
-          <a className="active"><MessageCircle /> Chat</a>
+          <a className="active" onClick={() => navigate("/chat")}>
+  <MessageCircle /> Chat
+</a>
           <a><Bell /> Stories</a>
           <a><Phone /> Calls</a>
           <a><UserPlus /> Requests</a>
