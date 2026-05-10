@@ -10,10 +10,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://192.168.1.44:5173"
-    ],
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
@@ -41,6 +38,8 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
