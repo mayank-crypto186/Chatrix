@@ -35,6 +35,7 @@ function Signup() {
     } catch (error) {
       console.log("Signup error:", error);
       console.log("Backend response:", error.response?.data);
+
       setMessage(error.response?.data?.message || "Signup failed");
     }
   };
