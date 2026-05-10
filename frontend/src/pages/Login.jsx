@@ -31,8 +31,11 @@ function Login() {
 
       navigate("/dashboard");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Login failed");
-    }
+  console.log("Login error:", error);
+  console.log("Backend response:", error.response?.data);
+
+  setMessage(error.response?.data?.message || "Login failed");
+}
   };
 
   return (
