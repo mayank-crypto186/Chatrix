@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
+import Chat from "./pages/Chat";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -35,11 +36,19 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
         {/* Unknown route redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+
   );
 }
 

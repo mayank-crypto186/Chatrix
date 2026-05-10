@@ -91,7 +91,12 @@ function Dashboard() {
                 <h3>{friend.name}</h3>
               </div>
 
-              <button className="msg-btn">Message</button>
+              <button
+                className="msg-btn"
+                onClick={() => navigate("/chat")}
+              >
+                Message
+              </button>
               <button className="more-btn"><MoreHorizontal /></button>
             </div>
           ))}
