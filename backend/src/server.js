@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const pool = require("./config/db");
+const friendRoutes = require("./routes/friendRoutes");
 require("dotenv").config();
 
 
@@ -18,6 +19,7 @@ app.use(express.json());
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/friends", friendRoutes);
 
 app.get("/", (req, res) => {
   res.send("Chatrix backend is running");
