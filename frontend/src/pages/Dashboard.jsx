@@ -13,6 +13,14 @@ import {
 } from "lucide-react";
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
+import {
+  searchUsers,
+  sendFriendRequest,
+  getFriendRequests,
+  acceptFriendRequest,
+  rejectFriendRequest,
+  getFriends,
+} from "../api/friendApi";
 
 const friends = [
   { name: "Aayushi", status: "online" },
