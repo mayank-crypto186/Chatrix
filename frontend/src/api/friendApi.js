@@ -1,38 +1,37 @@
 import axios from "axios";
 
-const API = "http://localhost:5000/api/friends";
+const API = `${import.meta.env.VITE_API_URL}/friends`;
 
-const getUserId = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  return user?.id;
+const getConfig = () => {
+  const token = localStorage.getItem("token");
+
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
 };
 
-const config = () => ({
-  headers: {
-    "user-id": getUserId(),
-  },
-});
-
 export const searchUsers = (username) => {
-  return axios.get(`${API}/search?username=${username}`, config());
+  return axios.get(`${API}/search?username=${username}`, getConfig());
 };
 
 export const sendFriendRequest = (receiverId) => {
-  return axios.post(`${API}/request/${receiverId}`, {}, config());
+  return axios.post(`${API}/request/${receiverId}`, {}, getConfig());
 };
 
 export const getFriendRequests = () => {
-  return axios.get(`${API}/requests`, config());
+  return axios.get(`${API}/requests`, getConfig());
 };
 
 export const acceptFriendRequest = (requestId) => {
-  return axios.post(`${API}/accept/${requestId}`, {}, config());
+  return axios.post(`${API}/accept/${requestId}`, {}, getConfig());
 };
 
 export const rejectFriendRequest = (requestId) => {
-  return axios.delete(`${API}/reject/${requestId}`, config());
+  return axios.delete(`${API}/reject/${requestId}`, getConfig());
 };
 
 export const getFriends = () => {
-  return axios.get(`${API}/friends`, config());
+  return axios.get(`${API}/friends`, getConfig());
 };

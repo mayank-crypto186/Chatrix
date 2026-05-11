@@ -339,3 +339,96 @@ nav a.active {
   background: rgba(255, 255, 255, 0.35);
   border-radius: 10px;
 }
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-results {
+  position: absolute;
+  top: 58px;
+  left: 0;
+  width: 100%;
+  background: rgba(20, 45, 100, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.search-result-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  color: white;
+}
+
+.search-result-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.search-result-card h4,
+.search-result-card p {
+  margin: 0;
+}
+
+.search-result-card p,
+.friend-info p {
+  opacity: 0.75;
+  margin: 4px 0 0;
+}
+
+.search-result-card button {
+  border: none;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #60a5fa;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dashboard-message {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.22);
+  color: white;
+  font-weight: 700;
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.request-count,
+.nav-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+}
+
+.request-count {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+}
+
+.nav-badge {
+  margin-left: auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 45px 15px;
+  color: white;
+  opacity: 0.85;
+}
+
+.empty-state h3 {
+  margin-bottom: 8px;
+}

@@ -37,13 +37,13 @@ function App() {
           }
         />
         <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          }
-        />
+  path="/chat/:friendId"
+  element={
+    <ProtectedRoute>
+      <Chat />
+    </ProtectedRoute>
+  }
+/>
         {/* Unknown route redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
