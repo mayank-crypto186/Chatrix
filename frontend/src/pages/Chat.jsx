@@ -1,241 +1,133 @@
-import { useState, useRef, useEffect } from "react";
-import {
-  Search,
-  Send,
-  Phone,
-  Video,
-  MoreVertical,
-  Smile,
-  Paperclip,
-  ArrowLeft,
-  Menu,
-} from "lucide-react";
-import "./Chat.css";
-
-const chats = [
-  {
-    id: 1,
-    name: "Aayushi",
-    status: "online",
-    lastMessage: "See you tomorrow!",
-    avatar: "https://i.pravatar.cc/100?img=41",
-  },
-  {
-    id: 2,
-    name: "Rishit",
-    status: "online",
-    lastMessage: "Okay done 👍",
-    avatar: "https://i.pravatar.cc/100?img=43",
-  },
-  {
-    id: 3,
-    name: "Shivani",
-    status: "away",
-    lastMessage: "I will check it.",
-    avatar: "https://i.pravatar.cc/100?img=44",
-  },
-  {
-    id: 4,
-    name: "Anisha",
-    status: "online",
-    lastMessage: "Let’s work on frontend.",
-    avatar: "https://i.pravatar.cc/100?img=45",
-  },
-];
-
-const initialMessages = [
-  { id: 1, sender: "other", text: "Hey! Are you working on Chatrix?", time: "10:20 AM" },
-  { id: 2, sender: "me", text: "Yes, building the chat UI now.", time: "10:21 AM", status: "seen" },
-  { id: 3, sender: "other", text: "Great! It looks clean.", time: "10:22 AM" },
-];
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Send, Smile, Paperclip } from "lucide-react";
+import { getConversation, sendMessage } from "../api/messageApi";
 
 function Chat() {
-  const [activeChat, setActiveChat] = useState(chats[0]);
-  const [messages, setMessages] = useState(initialMessages);
-  const [messageText, setMessageText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
+  const { friendId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const messagesEndRef = useRef(null);
+  const user = JSON.parse(localStorage.getItem("user"));
+  const friend = location.state?.friend;
 
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const [messages, setMessages] = useState([]);
+  const [text, setText] = useState("");
+
+  const loadMessages = async () => {
+    try {
+      const res = await getConversation(friendId);
+      setMessages(res.data);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    loadMessages();
+  }, [friendId]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
 
-    if (!messageText.trim()) return;
+    if (!text.trim()) return;
 
-    const newMessage = {
-      id: Date.now(),
-      sender: "me",
-      text: messageText,
-      time: getCurrentTime(),
-      status: "delivered",
-    };
+    await sendMessage(friendId, text);
 
-    setMessages((prev) => [...prev, newMessage]);
-    setMessageText("");
-    setShowEmoji(false);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-
-      const reply = {
-        id: Date.now() + 1,
-        sender: "other",
-        text: "Nice 👍",
-        time: getCurrentTime(),
-      };
-
-      setMessages((prev) => [...prev, reply]);
-    }, 1500);
-  };
-
-  const handleChatChange = (chat) => {
-    setActiveChat(chat);
-    setShowSidebar(false);
+    setText("");
+    loadMessages();
   };
 
   return (
-    <div className="chat-page">
-      {showSidebar && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setShowSidebar(false)}
-        ></div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-50">
+      <header className="h-20 border-b bg-white/80 backdrop-blur-xl px-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate("/dashboard")}>
+            <ArrowLeft />
+          </button>
 
-      <aside className={`chat-sidebar ${showSidebar ? "show" : ""}`}>
-        <div className="chat-sidebar-header">
-          <h2>Chats</h2>
-          <MoreVertical size={22} />
-        </div>
+          <Avatar name={friend?.name || "Friend"} />
 
-        <div className="chat-search">
-          <Search size={18} />
-          <input type="text" placeholder="Search chats..." />
-        </div>
-
-        <div className="chat-list">
-          {chats.map((chat) => (
-            <button
-              key={chat.id}
-              className={`chat-user ${activeChat.id === chat.id ? "active" : ""}`}
-              onClick={() => handleChatChange(chat)}
-            >
-              <div className="avatar-wrapper">
-                <img src={chat.avatar} alt={chat.name} />
-                <span className={`status-dot ${chat.status}`}></span>
-              </div>
-
-              <div className="chat-user-info">
-                <h3>{chat.name}</h3>
-                <p>{chat.lastMessage}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <main className="chat-main">
-        <header className="chat-header">
-          <div className="chat-user-title">
-            <button
-              className="back-btn"
-              type="button"
-              onClick={() => setShowSidebar(true)}
-            >
-              <Menu size={20} />
-            </button>
-
-            <img src={activeChat.avatar} alt={activeChat.name} />
-            <div>
-              <h3>{activeChat.name}</h3>
-              <p>{activeChat.status === "online" ? "Online" : "Away"}</p>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold">
+              {friend?.name || "Friend"}
+            </h2>
+            <p className="text-sm text-green-600">Online</p>
           </div>
+        </div>
 
-          <div className="chat-actions">
-            <Phone size={21} />
-            <Video size={22} />
-            <MoreVertical size={22} />
-          </div>
-        </header>
+        <button className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700">
+          Ghost Chat
+        </button>
+      </header>
 
-        <section className="messages-area">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`message-row ${msg.sender === "me" ? "me" : "other"}`}
-            >
-              <div className="message-bubble">
-                <p>{msg.text}</p>
-                <span>
-                  {msg.time} {msg.sender === "me" ? "✓✓" : ""}
-                </span>
+      <main className="h-[calc(100vh-160px)] overflow-y-auto p-8">
+        <div className="max-w-4xl mx-auto space-y-4">
+          {messages.length === 0 ? (
+            <div className="text-center text-slate-500 mt-20">
+              No messages yet. Start your conversation 👋
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  msg.sender_id === user.id ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-md px-5 py-3 rounded-2xl shadow-sm ${
+                    msg.sender_id === user.id
+                      ? "bg-blue-600 text-white rounded-br-none"
+                      : "bg-white text-slate-800 border rounded-bl-none"
+                  }`}
+                >
+                  <p>{msg.message}</p>
+                  <p className="text-xs opacity-70 mt-1">
+                    {new Date(msg.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-
-          {isTyping && (
-            <div className="typing">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+            ))
           )}
-
-          <div ref={messagesEndRef}></div>
-        </section>
-
-        <div className="chat-input-wrapper">
-          {showEmoji && (
-            <div className="emoji-picker">
-              <EmojiPicker
-                onEmojiClick={(emojiData) =>
-                  setMessageText((prev) => prev + emojiData.emoji)
-                }
-              />
-            </div>
-          )}
-
-          <form className="message-input-area" onSubmit={handleSend}>
-            <button
-              type="button"
-              className="input-icon"
-              onClick={() => setShowEmoji(!showEmoji)}
-            >
-              <Smile size={21} />
-            </button>
-
-            <button type="button" className="input-icon">
-              <Paperclip size={21} />
-            </button>
-
-            <input
-              type="text"
-              placeholder="Type your message..."
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-            />
-
-            <button type="submit" className="send-btn">
-              <Send size={20} />
-            </button>
-          </form>
         </div>
       </main>
+
+      <form
+        onSubmit={handleSend}
+        className="h-20 border-t bg-white px-8 flex items-center gap-4"
+      >
+        <button type="button" className="text-slate-500">
+          <Smile />
+        </button>
+
+        <button type="button" className="text-slate-500">
+          <Paperclip />
+        </button>
+
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 bg-slate-100 rounded-2xl px-5 py-3 outline-none focus:ring-2 focus:ring-blue-400"
+        />
+
+        <button className="h-12 w-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
+          <Send />
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Avatar({ name }) {
+  return (
+    <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold">
+      {name?.charAt(0)?.toUpperCase() || "U"}
+      <span className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 border-2 border-white rounded-full"></span>
     </div>
   );
 }

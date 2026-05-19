@@ -17,9 +17,5 @@ export const getConversation = (friendId) => {
 };
 
 export const sendMessage = (receiverId, message) => {
-  return axios.post(
-    `${API}/${receiverId}`,
-    { message },
-    getConfig()
-  );
+  return axios.post(`${API}/${receiverId}`, { message }, getConfig());
 };
