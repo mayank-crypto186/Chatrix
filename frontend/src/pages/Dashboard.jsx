@@ -1,24 +1,21 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Dashboard.css";
 import {
   Home,
   MessageCircle,
+  Clock,
   Phone,
-  Bell,
+  Star,
+  Settings,
+  UserPlus,
   Search,
+  Bell,
+  Folder,
   Plus,
   MoreHorizontal,
-  Users,
-  Bookmark,
-  UserPlus,
-  Gamepad2,
   LogOut,
-  Check,
-  X,
 } from "lucide-react";
-
-import "./Dashboard.css";
-import { useNavigate } from "react-router-dom";
-
 import {
   searchUsers,
   sendFriendRequest,
@@ -27,8 +24,6 @@ import {
   rejectFriendRequest,
   getFriends,
 } from "../api/friendApi";
-
-
 
 const stories = ["Shivam", "Nishant", "Harshika"];
 
@@ -156,11 +151,11 @@ function Dashboard() {
           </a>
 
           <a>
-            <Users /> Inner Circle
+            <Settings /> Inner Circle
           </a>
 
           <a>
-            <Bookmark /> Pinned Chat
+            <Star /> Pinned Chat
           </a>
 
           <a onClick={logout}>
@@ -247,105 +242,44 @@ function Dashboard() {
             <div className="section-title">
               <h2>Friend Requests</h2>
             </div>
-
-            {requests.map((req) => (
-              <div className="friend-card" key={req.id}>
-                <div className="friend-info">
-                  <img
-                    src={`https://i.pravatar.cc/100?u=${req.username}`}
-                    alt={req.name}
-                  />
+            <div className="request-list">
+              {requests.map((request) => (
+                <div className="request-card" key={request.id}>
                   <div>
-                    <h3>{req.name}</h3>
-                    <p>@{req.username}</p>
+                    <h4>{request.name}</h4>
+                    <p>@{request.username}</p>
+                  </div>
+                  <div className="request-actions">
+                    <button onClick={() => handleAccept(request.id)}>
+                      <Check />
+                    </button>
+                    <button onClick={() => handleReject(request.id)}>
+                      <X />
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  className="msg-btn"
-                  onClick={() => handleAccept(req.id)}
-                >
-                  <Check size={18} /> Accept
-                </button>
-
-                <button
-                  className="more-btn"
-                  onClick={() => handleReject(req.id)}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </section>
         )}
 
         <section className="friends-box">
           <div className="section-title">
             <h2>Friends</h2>
-            <button>
-              <Plus size={18} /> Message
-            </button>
           </div>
-
-          {friends.length === 0 ? (
-            <div className="empty-state">
-              <h3>No friends yet</h3>
-              <p>Search username and send your first friend request.</p>
-            </div>
-          ) : (
-            friends.map((friend, index) => (
+          <div className="friends-list">
+            {friends.map((friend) => (
               <div className="friend-card" key={friend.id}>
-                <div className="friend-info">
-                  <img
-                    src={`https://i.pravatar.cc/100?img=${index + 40}`}
-                    alt={friend.name}
-                  />
-                  <div>
-                    <h3>{friend.name}</h3>
-                    {friend.username && <p>@{friend.username}</p>}
-                  </div>
+                <div>
+                  <h4>{friend.name}</h4>
+                  <p>@{friend.username}</p>
                 </div>
-
-                <button className="msg-btn" onClick={() => openChat(friend)}>
-                  Message
-                </button>
-
-                <button className="more-btn">
-                  <MoreHorizontal />
-                </button>
+                <button onClick={() => openChat(friend)}>Chat</button>
               </div>
-            ))
-          )}
+            ))}
+          </div>
         </section>
       </main>
-
-      <aside className="right-panel">
-        <div className="widget">
-          <h2>Stories</h2>
-          <p>
-            Anushna <span>1h</span>
-          </p>
-          <p>
-            Rahul <span>10m</span>
-          </p>
-        </div>
-
-        <div className="widget">
-          <h2>Trending Posts</h2>
-          <div className="trend">Weekend Getaway 🌅</div>
-          <div className="trend">Tech Trends 2026 📱</div>
-        </div>
-
-        <div className="widget">
-          <h2>Status</h2>
-          <p>📚 Studying</p>
-          <p>
-            <Gamepad2 size={18} /> Gaming
-          </p>
-          <p>🟢 Free to Chat</p>
-          <p>🔴 Busy</p>
-        </div>
-      </aside>
     </div>
   );
 }
