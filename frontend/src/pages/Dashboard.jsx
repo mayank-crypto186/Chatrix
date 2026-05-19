@@ -26,14 +26,6 @@ import {
   getFriends,
 } from "../api/friendApi";
 
-import {
-  searchUsers,
-  sendFriendRequest,
-  getFriendRequests,
-  acceptFriendRequest,
-  rejectFriendRequest,
-  getFriends,
-} from "../api/friendApi";
 
 const stories = ["Shivam", "Nishant", "Harshika"];
 

@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   Menu,
 } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
 import "./Chat.css";
 
 const chats = [
