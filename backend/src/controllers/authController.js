@@ -27,9 +27,9 @@ const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await pool.query(
-      `INSERT INTO users (name, username, email, password)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, username, email, status`,
+      `INSERT INTO users (name, username, email, password, is_online, last_seen)
+       VALUES ($1, $2, $3, $4, true, NULL)
+       RETURNING id, name, username, email, is_online, last_seen`,
       [name, username, email, hashedPassword]
     );
 
@@ -42,7 +42,10 @@ const signup = async (req, res) => {
     res.status(201).json({
       message: "Signup successful",
       token,
-      user: newUser.rows[0],
+      user: {
+        ...newUser.rows[0],
+        status: "online",
+      },
     });
   } catch (error) {
     console.error("Signup error:", error);
@@ -84,6 +87,11 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    await pool.query(
+      `UPDATE users SET is_online = true, last_seen = NULL WHERE id = $1`,
+      [user.rows[0].id]
+    );
+
     res.json({
       message: "Login successful",
       token,
@@ -92,7 +100,8 @@ const login = async (req, res) => {
         name: user.rows[0].name,
         username: user.rows[0].username,
         email: user.rows[0].email,
-        status: user.rows[0].status,
+        is_online: true,
+        status: "online",
       },
     });
   } catch (error) {
@@ -104,4 +113,20 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { signup, login };
+const logout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await pool.query(
+      `UPDATE users SET is_online = false, last_seen = NOW() WHERE id = $1`,
+      [userId]
+    );
+
+    res.json({ message: "Logout successful" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ message: "Logout failed", error: error.message });
+  }
+};
+
+module.exports = { signup, login, logout };

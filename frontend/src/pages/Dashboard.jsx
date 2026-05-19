@@ -18,6 +18,7 @@ import {
 
 import "../styles/Dashboard.css";
 import { useNavigate } from "react-router-dom";
+import { logoutUser } from "../api/authApi";
 
 import {
   searchUsers,
@@ -112,7 +113,20 @@ function Dashboard() {
     navigate(`/chat/${friend.id}`, { state: { friend } });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        await logoutUser({
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (error) {
+      console.log("Logout request failed:", error);
+    }
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
@@ -127,7 +141,7 @@ function Dashboard() {
           <img src="https://i.pravatar.cc/100?img=32" alt="profile" />
           <div>
             <h3>{user?.name || "User"}</h3>
-            <p>Busy 🔴</p>
+            <p>{user?.is_online ? "Online" : "Offline"}</p>
           </div>
         </div>
 
@@ -303,6 +317,9 @@ function Dashboard() {
                   <div>
                     <h3>{friend.name}</h3>
                     {friend.username && <p>@{friend.username}</p>}
+                    <p className="friend-status-text">
+                      {friend.is_online ? "Online" : "Offline"}
+                    </p>
                   </div>
                 </div>
 

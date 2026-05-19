@@ -9,3 +9,7 @@ export const signupUser = (userData) => {
 export const loginUser = (userData) => {
   return axios.post(`${API}/login`, userData);
 };
+
+export const logoutUser = (config) => {
+  return axios.post(`${API}/logout`, {}, config);
+};

@@ -146,10 +146,8 @@ function Chat() {
     navigate(`/chat/${friend.id}`, { state: { friend } });
   };
 
-  const renderStatus = (status) => {
-    if (status === "online") return "Online";
-    if (status === "away") return "Away";
-    return "Offline";
+  const renderStatus = (isOnline) => {
+    return isOnline ? "Online" : "Offline";
   };
 
   return (
@@ -187,7 +185,7 @@ function Chat() {
                     src={`https://i.pravatar.cc/100?img=${friend.id}`}
                     alt={friend.name}
                   />
-                  <span className={`status-dot ${friend.status || "away"}`}></span>
+                  <span className={`status-dot ${friend.is_online ? "online" : "offline"}`}></span>
                 </div>
 
                 <div className="chat-user-info">
@@ -223,7 +221,7 @@ function Chat() {
               <h3>{activeFriend?.name || "Select a chat"}</h3>
               <p>
                 {activeFriend
-                  ? renderStatus(activeFriend.status)
+                  ? renderStatus(activeFriend?.is_online)
                   : "Choose a friend to start chat"}
               </p>
             </div>

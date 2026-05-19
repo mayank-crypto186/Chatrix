@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import "./Auth.css";
+import "../styles/Auth.css";
 
 function ForgotPassword() {
   return (

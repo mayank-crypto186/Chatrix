@@ -10,7 +10,8 @@ const searchUsers = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, name, username, email, status
+      `SELECT id, name, username, email, is_online,
+        CASE WHEN is_online THEN 'online' ELSE 'offline' END AS status
        FROM users
        WHERE username ILIKE $1
        AND id != $2
@@ -137,7 +138,9 @@ const getFriends = async (req, res) => {
     const userId = req.user.id;
 
     const result = await pool.query(
-      `SELECT u.id, u.name, u.username, u.email, u.status
+      `SELECT u.id, u.name, u.username, u.email, u.is_online,
+        CASE WHEN u.is_online THEN 'online' ELSE 'offline' END AS status,
+        u.last_seen
        FROM friendships f
        JOIN users u
        ON u.id = CASE
