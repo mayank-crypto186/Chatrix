@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   Search,
   Send,
@@ -7,56 +8,26 @@ import {
   MoreVertical,
   Smile,
   Paperclip,
-  ArrowLeft,
   Menu,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "./Chat.css";
-
-const chats = [
-  {
-    id: 1,
-    name: "Aayushi",
-    status: "online",
-    lastMessage: "See you tomorrow!",
-    avatar: "https://i.pravatar.cc/100?img=41",
-  },
-  {
-    id: 2,
-    name: "Rishit",
-    status: "online",
-    lastMessage: "Okay done 👍",
-    avatar: "https://i.pravatar.cc/100?img=43",
-  },
-  {
-    id: 3,
-    name: "Shivani",
-    status: "away",
-    lastMessage: "I will check it.",
-    avatar: "https://i.pravatar.cc/100?img=44",
-  },
-  {
-    id: 4,
-    name: "Anisha",
-    status: "online",
-    lastMessage: "Let’s work on frontend.",
-    avatar: "https://i.pravatar.cc/100?img=45",
-  },
-];
-
-const initialMessages = [
-  { id: 1, sender: "other", text: "Hey! Are you working on Chatrix?", time: "10:20 AM" },
-  { id: 2, sender: "me", text: "Yes, building the chat UI now.", time: "10:21 AM", status: "seen" },
-  { id: 3, sender: "other", text: "Great! It looks clean.", time: "10:22 AM" },
-];
+import { getConversation, sendMessage } from "../api/messageApi";
+import { getFriends } from "../api/friendApi";
 
 function Chat() {
-  const [activeChat, setActiveChat] = useState(chats[0]);
-  const [messages, setMessages] = useState(initialMessages);
+  const { friendId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [friends, setFriends] = useState([]);
+  const [activeFriend, setActiveFriend] = useState(location.state?.friend || null);
+  const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const messagesEndRef = useRef(null);
 
@@ -69,43 +40,116 @@ function Chat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages]);
 
-  const handleSend = (e) => {
+  useEffect(() => {
+    const fetchFriends = async () => {
+      try {
+        const response = await getFriends();
+        const friendsList = response.data || [];
+        setFriends(friendsList);
+
+        if (!activeFriend && friendId) {
+          const matchedFriend = friendsList.find(
+            (friend) => String(friend.id) === String(friendId)
+          );
+          if (matchedFriend) {
+            setActiveFriend(matchedFriend);
+          }
+        }
+      } catch (err) {
+        setError("Failed to load friends. Please refresh the page.");
+      }
+    };
+
+    fetchFriends();
+  }, [friendId]);
+
+  useEffect(() => {
+    if (!activeFriend) {
+      return;
+    }
+
+    const fetchConversation = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await getConversation(activeFriend.id);
+        const conversation = response.data || [];
+
+        const formattedMessages = conversation.map((message) => ({
+          id: message.id,
+          sender:
+            String(message.sender_id) === String(activeFriend.id)
+              ? "other"
+              : "me",
+          text: message.message,
+          time: new Date(message.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        }));
+
+        setMessages(formattedMessages);
+      } catch (err) {
+        setError(err.response?.data?.message || "Could not load this conversation.");
+        setMessages([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConversation();
+  }, [activeFriend]);
+
+  useEffect(() => {
+    if (location.state?.friend && String(location.state.friend.id) !== String(activeFriend?.id)) {
+      setActiveFriend(location.state.friend);
+    }
+  }, [location.state?.friend, activeFriend?.id]);
+
+  const handleSend = async (e) => {
     e.preventDefault();
+
+    if (!activeFriend) {
+      setError("Please select a chat first.");
+      return;
+    }
 
     if (!messageText.trim()) return;
 
+    const messageToSend = messageText.trim();
     const newMessage = {
       id: Date.now(),
       sender: "me",
-      text: messageText,
+      text: messageToSend,
       time: getCurrentTime(),
-      status: "delivered",
+      status: "sent",
     };
 
     setMessages((prev) => [...prev, newMessage]);
     setMessageText("");
     setShowEmoji(false);
-    setIsTyping(true);
+    setError("");
 
-    setTimeout(() => {
-      setIsTyping(false);
-
-      const reply = {
-        id: Date.now() + 1,
-        sender: "other",
-        text: "Nice 👍",
-        time: getCurrentTime(),
-      };
-
-      setMessages((prev) => [...prev, reply]);
-    }, 1500);
+    try {
+      await sendMessage(activeFriend.id, messageToSend);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send message.");
+    }
   };
 
-  const handleChatChange = (chat) => {
-    setActiveChat(chat);
+  const handleChatChange = (friend) => {
+    setActiveFriend(friend);
     setShowSidebar(false);
+    navigate(`/chat/${friend.id}`, { state: { friend } });
+  };
+
+  const renderStatus = (status) => {
+    if (status === "online") return "Online";
+    if (status === "away") return "Away";
+    return "Offline";
   };
 
   return (
@@ -125,27 +169,34 @@ function Chat() {
 
         <div className="chat-search">
           <Search size={18} />
-          <input type="text" placeholder="Search chats..." />
+          <input type="text" placeholder="Search chats..." disabled />
         </div>
 
         <div className="chat-list">
-          {chats.map((chat) => (
-            <button
-              key={chat.id}
-              className={`chat-user ${activeChat.id === chat.id ? "active" : ""}`}
-              onClick={() => handleChatChange(chat)}
-            >
-              <div className="avatar-wrapper">
-                <img src={chat.avatar} alt={chat.name} />
-                <span className={`status-dot ${chat.status}`}></span>
-              </div>
+          {friends.length === 0 ? (
+            <div className="no-chats">No friends found yet.</div>
+          ) : (
+            friends.map((friend) => (
+              <button
+                key={friend.id}
+                className={`chat-user ${activeFriend?.id === friend.id ? "active" : ""}`}
+                onClick={() => handleChatChange(friend)}
+              >
+                <div className="avatar-wrapper">
+                  <img
+                    src={`https://i.pravatar.cc/100?img=${friend.id}`}
+                    alt={friend.name}
+                  />
+                  <span className={`status-dot ${friend.status || "away"}`}></span>
+                </div>
 
-              <div className="chat-user-info">
-                <h3>{chat.name}</h3>
-                <p>{chat.lastMessage}</p>
-              </div>
-            </button>
-          ))}
+                <div className="chat-user-info">
+                  <h3>{friend.name}</h3>
+                  <p>{friend.username || "Friend"}</p>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </aside>
 
@@ -160,10 +211,21 @@ function Chat() {
               <Menu size={20} />
             </button>
 
-            <img src={activeChat.avatar} alt={activeChat.name} />
+            <img
+              src={
+                activeFriend
+                  ? `https://i.pravatar.cc/100?img=${activeFriend.id}`
+                  : "https://i.pravatar.cc/100?img=32"
+              }
+              alt={activeFriend?.name || "Select a chat"}
+            />
             <div>
-              <h3>{activeChat.name}</h3>
-              <p>{activeChat.status === "online" ? "Online" : "Away"}</p>
+              <h3>{activeFriend?.name || "Select a chat"}</h3>
+              <p>
+                {activeFriend
+                  ? renderStatus(activeFriend.status)
+                  : "Choose a friend to start chat"}
+              </p>
             </div>
           </div>
 
@@ -175,7 +237,21 @@ function Chat() {
         </header>
 
         <section className="messages-area">
-          {messages.map((msg) => (
+          {loading && <div className="loading">Loading conversation...</div>}
+          {error && <div className="chat-error">{error}</div>}
+          {!loading && !activeFriend && (
+            <div className="empty-message">
+              Select a friend from the left sidebar to view messages.
+            </div>
+          )}
+
+          {!loading && activeFriend && messages.length === 0 && (
+            <div className="empty-message">
+              No messages yet. Send the first message.
+            </div>
+          )}
+
+          {!loading && messages.map((msg) => (
             <div
               key={msg.id}
               className={`message-row ${msg.sender === "me" ? "me" : "other"}`}
@@ -188,14 +264,6 @@ function Chat() {
               </div>
             </div>
           ))}
-
-          {isTyping && (
-            <div className="typing">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          )}
 
           <div ref={messagesEndRef}></div>
         </section>
@@ -229,9 +297,10 @@ function Chat() {
               placeholder="Type your message..."
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
+              disabled={!activeFriend}
             />
 
-            <button type="submit" className="send-btn">
+            <button type="submit" className="send-btn" disabled={!activeFriend || !messageText.trim()}>
               <Send size={20} />
             </button>
           </form>

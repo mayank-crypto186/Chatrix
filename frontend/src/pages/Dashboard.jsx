@@ -15,16 +15,9 @@ import {
   Check,
   X,
 } from "lucide-react";
+
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
-import {
-  searchUsers,
-  sendFriendRequest,
-  getFriendRequests,
-  acceptFriendRequest,
-  rejectFriendRequest,
-  getFriends,
-} from "../api/friendApi";
 
 import {
   searchUsers,
@@ -34,6 +27,8 @@ import {
   rejectFriendRequest,
   getFriends,
 } from "../api/friendApi";
+
+
 
 const stories = ["Shivam", "Nishant", "Harshika"];
 
