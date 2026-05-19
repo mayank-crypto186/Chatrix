@@ -2,6 +2,7 @@ import { useState } from "react";
 import { User, Mail, Lock, MessageCircle, ShieldCheck, Cloud } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { signupUser } from "../api/authApi";
+import "../styles/Auth.css";
 
 function Signup() {
   const navigate = useNavigate();

@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 
-import "./Dashboard.css";
+import "../styles/Dashboard.css";
 import { useNavigate } from "react-router-dom";
 
 import {

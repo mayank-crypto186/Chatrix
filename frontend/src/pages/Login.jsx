@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Mail, Lock, Eye, MessageCircle, ShieldCheck, Cloud } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser } from "../api/authApi";
+import "../styles/Auth.css";
 
 function Login() {
   const navigate = useNavigate();

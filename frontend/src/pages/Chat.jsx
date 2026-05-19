@@ -11,7 +11,7 @@ import {
   Menu,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
-import "./Chat.css";
+import "../styles/Chat.css";
 import { getConversation, sendMessage } from "../api/messageApi";
 import { getFriends } from "../api/friendApi";
 
