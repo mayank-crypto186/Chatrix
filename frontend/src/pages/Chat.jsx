@@ -8,7 +8,6 @@ import {
   MoreVertical,
   Smile,
   Paperclip,
-  ArrowLeft,
   Menu,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -156,7 +155,10 @@ function Chat() {
   return (
     <div className="chat-page">
       {showSidebar && (
-        <div className="sidebar-overlay" onClick={() => setShowSidebar(false)} />
+        <div
+          className="sidebar-overlay"
+          onClick={() => setShowSidebar(false)}
+        ></div>
       )}
 
       <aside className={`chat-sidebar ${showSidebar ? "show" : ""}`}>
@@ -181,7 +183,10 @@ function Chat() {
                 onClick={() => handleChatChange(friend)}
               >
                 <div className="avatar-wrapper">
-                  <img src={`https://i.pravatar.cc/100?img=${friend.id}`} alt={friend.name} />
+                  <img
+                    src={`https://i.pravatar.cc/100?img=${friend.id}`}
+                    alt={friend.name}
+                  />
                   <span className={`status-dot ${friend.status || "away"}`}></span>
                 </div>
 
@@ -198,17 +203,29 @@ function Chat() {
       <main className="chat-main">
         <header className="chat-header">
           <div className="chat-user-title">
-            <button className="back-btn" type="button" onClick={() => setShowSidebar(true)}>
+            <button
+              className="back-btn"
+              type="button"
+              onClick={() => setShowSidebar(true)}
+            >
               <Menu size={20} />
             </button>
 
             <img
-              src={activeFriend ? `https://i.pravatar.cc/100?img=${activeFriend.id}` : "https://i.pravatar.cc/100?img=32"}
+              src={
+                activeFriend
+                  ? `https://i.pravatar.cc/100?img=${activeFriend.id}`
+                  : "https://i.pravatar.cc/100?img=32"
+              }
               alt={activeFriend?.name || "Select a chat"}
             />
             <div>
               <h3>{activeFriend?.name || "Select a chat"}</h3>
-              <p>{activeFriend ? renderStatus(activeFriend.status) : "Choose a friend to start chat"}</p>
+              <p>
+                {activeFriend
+                  ? renderStatus(activeFriend.status)
+                  : "Choose a friend to start chat"}
+              </p>
             </div>
           </div>
 
@@ -223,33 +240,51 @@ function Chat() {
           {loading && <div className="loading">Loading conversation...</div>}
           {error && <div className="chat-error">{error}</div>}
           {!loading && !activeFriend && (
-            <div className="empty-message">Select a friend from the left sidebar to view messages.</div>
-          )}
-          {!loading && activeFriend && messages.length === 0 && (
-            <div className="empty-message">No messages yet. Send the first message.</div>
+            <div className="empty-message">
+              Select a friend from the left sidebar to view messages.
+            </div>
           )}
 
-          {messages.map((msg) => (
-            <div key={msg.id} className={`message-row ${msg.sender === "me" ? "me" : "other"}`}>
+          {!loading && activeFriend && messages.length === 0 && (
+            <div className="empty-message">
+              No messages yet. Send the first message.
+            </div>
+          )}
+
+          {!loading && messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`message-row ${msg.sender === "me" ? "me" : "other"}`}
+            >
               <div className="message-bubble">
                 <p>{msg.text}</p>
-                <span>{msg.time} {msg.sender === "me" ? "✓✓" : ""}</span>
+                <span>
+                  {msg.time} {msg.sender === "me" ? "✓✓" : ""}
+                </span>
               </div>
             </div>
           ))}
 
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef}></div>
         </section>
 
         <div className="chat-input-wrapper">
           {showEmoji && (
             <div className="emoji-picker">
-              <EmojiPicker onEmojiClick={(emojiData) => setMessageText((prev) => prev + emojiData.emoji)} />
+              <EmojiPicker
+                onEmojiClick={(emojiData) =>
+                  setMessageText((prev) => prev + emojiData.emoji)
+                }
+              />
             </div>
           )}
 
           <form className="message-input-area" onSubmit={handleSend}>
-            <button type="button" className="input-icon" onClick={() => setShowEmoji(!showEmoji)}>
+            <button
+              type="button"
+              className="input-icon"
+              onClick={() => setShowEmoji(!showEmoji)}
+            >
               <Smile size={21} />
             </button>
 

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
+import ForgotPassword from "./pages/ForgotPassword";
 import Chat from "./pages/Chat";
 
 function ProtectedRoute({ children }) {
@@ -18,10 +19,15 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Redirect root */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
+        {/* Protected Route */}
         <Route
           path="/dashboard"
           element={
@@ -30,19 +36,19 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
-          path="/chat/:friendId"
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          }
-        />
-
+  path="/chat/:friendId"
+  element={
+    <ProtectedRoute>
+      <Chat />
+    </ProtectedRoute>
+  }
+/>
+        {/* Unknown route redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+
   );
 }
 
