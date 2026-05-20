@@ -77,21 +77,24 @@ io.on("connection", (socket) => {
     return;
   }
 
+  console.log("socket connected", socket.id, "authUser:", socket.data.userId);
   socket.on("register", (userId) => {
-    if (String(userId) !== String(socket.data.userId)) return;
+    if (String(userId) !== String(socket.data.userId)) {
+      console.log("register mismatch", userId, socket.data.userId);
+      return;
+    }
+    const key = String(userId);
     addOnlineUser(userId, socket.id);
+    socket.join(key);
+    console.log(`User ${userId} joined room ${key}`);
   });
 
   socket.on("typing", ({ receiverId, typing }) => {
     if (!receiverId) return;
-    const targetSockets = onlineUsers.get(String(receiverId));
-    if (!targetSockets) return;
-
-    targetSockets.forEach((targetSocketId) => {
-      io.to(targetSocketId).emit("typing", {
-        from: socket.data.userId,
-        typing: Boolean(typing),
-      });
+    console.log("typing from", socket.data.userId, "to", receiverId, typing);
+    io.to(String(receiverId)).emit("typing", {
+      from: socket.data.userId,
+      typing: Boolean(typing),
     });
   });
 

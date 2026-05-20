@@ -45,16 +45,13 @@ const sendMessage = async (req, res) => {
       created_at: newMessage.created_at,
     };
 
-    const emitToUser = (userId) => {
-      const sockets = onlineUsers.get(String(userId));
-      if (!sockets) return;
-      sockets.forEach((socketId) => {
-        io.to(socketId).emit("newMessage", messagePayload);
-      });
-    };
-
-    emitToUser(receiverId);
-    emitToUser(senderId);
+    try {
+      console.log("Emitting newMessage to rooms:", receiverId, senderId);
+      io.to(String(receiverId)).emit("newMessage", messagePayload);
+      io.to(String(senderId)).emit("newMessage", messagePayload);
+    } catch (emitErr) {
+      console.error("Emit error:", emitErr);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {
