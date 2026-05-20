@@ -12,15 +12,37 @@ const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:5173",
+  "https://chatrix-five.vercel.app",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.log("CORS blocked origin:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 const onlineUsers = new Map();
 const socketIdToUserId = new Map();
@@ -41,6 +63,7 @@ const removeOnlineUser = (socketId) => {
   if (!sockets) return;
 
   sockets.delete(socketId);
+
   if (sockets.size === 0) {
     onlineUsers.delete(userId);
   } else {
@@ -50,22 +73,16 @@ const removeOnlineUser = (socketId) => {
   socketIdToUserId.delete(socketId);
 };
 
-const io = new Server(server, {
-  cors: {
-    origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
 app.set("io", io);
 app.set("onlineUsers", onlineUsers);
 
 io.on("connection", (socket) => {
-  console.log("Socket connected", socket.id);
+  console.log("Socket connected:", socket.id);
+
   const token = socket.handshake.auth?.token;
 
   if (!token) {
+    console.log("No token provided");
     socket.disconnect(true);
     return;
   }
@@ -73,26 +90,36 @@ io.on("connection", (socket) => {
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     socket.data.userId = payload.id;
+
+    console.log("Authenticated user:", payload.id);
+
+    addOnlineUser(payload.id, socket.id);
+
+    socket.join(String(payload.id));
+
+    io.emit("userOnline", {
+      userId: payload.id,
+    });
   } catch (error) {
+    console.log("JWT Error:", error.message);
     socket.disconnect(true);
     return;
   }
 
-  console.log("socket connected", socket.id, "authUser:", socket.data.userId);
   socket.on("joinUser", (userId) => {
     if (String(userId) !== String(socket.data.userId)) {
-      console.log("joinUser mismatch", userId, socket.data.userId);
+      console.log("joinUser mismatch");
       return;
     }
-    const key = String(userId);
-    addOnlineUser(userId, socket.id);
-    socket.join(key);
-    console.log("User joined room", key);
+
+    socket.join(String(userId));
+
+    console.log("User joined room:", userId);
   });
 
   socket.on("typing", ({ receiverId, typing }) => {
     if (!receiverId) return;
-    console.log("typing from", socket.data.userId, "to", receiverId, typing);
+
     io.to(String(receiverId)).emit("typing", {
       from: socket.data.userId,
       typing: Boolean(typing),
@@ -100,10 +127,22 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    console.log("Socket disconnected:", socket.id);
+
+    const userId = socket.data.userId;
+
     removeOnlineUser(socket.id);
+
+    if (
+      userId &&
+      !onlineUsers.has(String(userId))
+    ) {
+      io.emit("userOffline", {
+        userId,
+      });
+    }
   });
 });
-
 
 app.use("/api/auth", authRoutes);
 app.use("/api/friends", friendRoutes);
@@ -116,6 +155,7 @@ app.get("/", (req, res) => {
 app.get("/test-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
+
     res.json({
       message: "PostgreSQL connected successfully",
       time: result.rows[0],
@@ -134,5 +174,4 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Export io for other modules if needed
 module.exports = { io };
