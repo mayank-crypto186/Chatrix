@@ -29,10 +29,13 @@ function Chat() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [friendTyping, setFriendTyping] = useState(false);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const activeFriendRef = useRef(activeFriend);
+  const typingTimeoutRef = useRef(null);
+  const typingSentRef = useRef(false);
 
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString([], {
@@ -61,6 +64,14 @@ function Chat() {
     });
 
     socketRef.current = socket;
+
+    const emitTyping = (typing) => {
+      if (!socketRef.current || !activeFriendRef.current) return;
+      socketRef.current.emit("typing", {
+        receiverId: activeFriendRef.current.id,
+        typing,
+      });
+    };
 
     socket.on("connect", () => {
       socket.emit("register", user.id);
@@ -99,7 +110,32 @@ function Chat() {
       });
     });
 
+    socket.on("typing", (payload) => {
+      const currentFriend = activeFriendRef.current;
+      if (!currentFriend || String(payload.from) !== String(currentFriend.id)) return;
+
+      if (payload.typing) {
+        setFriendTyping(true);
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+          setFriendTyping(false);
+          typingTimeoutRef.current = null;
+        }, 1200);
+      } else {
+        setFriendTyping(false);
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = null;
+        }
+      }
+    });
+
     return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       socket.disconnect();
       socketRef.current = null;
     };
@@ -169,10 +205,57 @@ function Chat() {
   useEffect(() => {
     if (location.state?.friend && String(location.state.friend.id) !== String(activeFriend?.id)) {
       setActiveFriend(location.state.friend);
+      setFriendTyping(false);
     }
   }, [location.state?.friend, activeFriend?.id]);
 
+  const handleTyping = () => {
+    if (!socketRef.current || !activeFriend) return;
+    if (!typingSentRef.current) {
+      socketRef.current.emit("typing", {
+        receiverId: activeFriend.id,
+        typing: true,
+      });
+      typingSentRef.current = true;
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (socketRef.current) {
+        socketRef.current.emit("typing", {
+          receiverId: activeFriend.id,
+          typing: false,
+        });
+      }
+      typingSentRef.current = false;
+      typingTimeoutRef.current = null;
+    }, 1200);
+  };
+
   const handleSend = async (e) => {
+    e.preventDefault();
+
+    if (!activeFriend) {
+      setError("Please select a chat first.");
+      return;
+    }
+
+    if (!messageText.trim()) return;
+
+    if (socketRef.current) {
+      socketRef.current.emit("typing", {
+        receiverId: activeFriend.id,
+        typing: false,
+      });
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    typingSentRef.current = false;
     e.preventDefault();
 
     if (!activeFriend) {
@@ -302,7 +385,9 @@ function Chat() {
               <h3>{activeFriend?.name || "Select a chat"}</h3>
               <p>
                 {activeFriend
-                  ? renderStatus(activeFriend?.is_online)
+                  ? friendTyping
+                    ? "Typing..."
+                    : renderStatus(activeFriend?.is_online)
                   : "Choose a friend to start chat"}
               </p>
             </div>
@@ -375,7 +460,10 @@ function Chat() {
               type="text"
               placeholder="Type your message..."
               value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              onChange={(e) => {
+                setMessageText(e.target.value);
+                handleTyping();
+              }}
               disabled={!activeFriend}
             />
 

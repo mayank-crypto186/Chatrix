@@ -82,6 +82,19 @@ io.on("connection", (socket) => {
     addOnlineUser(userId, socket.id);
   });
 
+  socket.on("typing", ({ receiverId, typing }) => {
+    if (!receiverId) return;
+    const targetSockets = onlineUsers.get(String(receiverId));
+    if (!targetSockets) return;
+
+    targetSockets.forEach((targetSocketId) => {
+      io.to(targetSocketId).emit("typing", {
+        from: socket.data.userId,
+        typing: Boolean(typing),
+      });
+    });
+  });
+
   socket.on("disconnect", () => {
     removeOnlineUser(socket.id);
   });
