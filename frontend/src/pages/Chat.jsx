@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { io } from "socket.io-client";
 import {
   Search,
   Send,
@@ -30,6 +31,8 @@ function Chat() {
   const [error, setError] = useState("");
 
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const activeFriendRef = useRef(activeFriend);
 
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString([], {
@@ -41,6 +44,66 @@ function Chat() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    activeFriendRef.current = activeFriend;
+  }, [activeFriend]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+
+    if (!token || !user?.id) return;
+
+    const socket = io(import.meta.env.VITE_API_URL, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      socket.emit("register", user.id);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Socket connection failed:", err.message);
+    });
+
+    socket.on("newMessage", (message) => {
+      const currentFriend = activeFriendRef.current;
+      if (!currentFriend) return;
+
+      const isRelevant =
+        String(message.sender_id) === String(currentFriend.id) ||
+        String(message.receiver_id) === String(currentFriend.id);
+
+      if (!isRelevant) return;
+
+      setMessages((prev) => {
+        if (prev.some((msg) => String(msg.id) === String(message.id))) {
+          return prev;
+        }
+
+        const incoming = {
+          id: message.id,
+          sender: String(message.sender_id) === String(user.id) ? "me" : "other",
+          text: message.message,
+          time: new Date(message.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        return [...prev, incoming];
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -120,8 +183,9 @@ function Chat() {
     if (!messageText.trim()) return;
 
     const messageToSend = messageText.trim();
+    const tempId = `temp-${Date.now()}`;
     const newMessage = {
-      id: Date.now(),
+      id: tempId,
       sender: "me",
       text: messageToSend,
       time: getCurrentTime(),
@@ -134,7 +198,24 @@ function Chat() {
     setError("");
 
     try {
-      await sendMessage(activeFriend.id, messageToSend);
+      const response = await sendMessage(activeFriend.id, messageToSend);
+      const savedMessage = response.data;
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId
+            ? {
+                id: savedMessage.id,
+                sender: "me",
+                text: savedMessage.message,
+                time: new Date(savedMessage.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              }
+            : msg
+        )
+      );
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send message.");
     }

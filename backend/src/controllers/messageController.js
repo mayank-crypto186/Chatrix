@@ -34,7 +34,29 @@ const sendMessage = async (req, res) => {
       [senderId, receiverId, message]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newMessage = result.rows[0];
+    const io = req.app.get("io");
+    const onlineUsers = req.app.get("onlineUsers");
+    const messagePayload = {
+      id: newMessage.id,
+      sender_id: senderId,
+      receiver_id: receiverId,
+      message: newMessage.message,
+      created_at: newMessage.created_at,
+    };
+
+    const emitToUser = (userId) => {
+      const sockets = onlineUsers.get(String(userId));
+      if (!sockets) return;
+      sockets.forEach((socketId) => {
+        io.to(socketId).emit("newMessage", messagePayload);
+      });
+    };
+
+    emitToUser(receiverId);
+    emitToUser(senderId);
+
+    res.status(201).json(newMessage);
   } catch (error) {
     res.status(500).json({ message: "Failed to send message", error: error.message });
   }
