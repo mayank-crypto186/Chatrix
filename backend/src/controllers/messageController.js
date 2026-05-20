@@ -46,8 +46,9 @@ const sendMessage = async (req, res) => {
     };
 
     try {
-      console.log("Emitting newMessage to rooms:", receiverId, senderId);
+      console.log("Emitting newMessage to receiver", receiverId);
       io.to(String(receiverId)).emit("newMessage", messagePayload);
+      console.log("Emitting newMessage to sender", senderId);
       io.to(String(senderId)).emit("newMessage", messagePayload);
     } catch (emitErr) {
       console.error("Emit error:", emitErr);

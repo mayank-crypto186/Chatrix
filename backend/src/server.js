@@ -62,6 +62,7 @@ app.set("io", io);
 app.set("onlineUsers", onlineUsers);
 
 io.on("connection", (socket) => {
+  console.log("Socket connected", socket.id);
   const token = socket.handshake.auth?.token;
 
   if (!token) {
@@ -78,15 +79,15 @@ io.on("connection", (socket) => {
   }
 
   console.log("socket connected", socket.id, "authUser:", socket.data.userId);
-  socket.on("register", (userId) => {
+  socket.on("joinUser", (userId) => {
     if (String(userId) !== String(socket.data.userId)) {
-      console.log("register mismatch", userId, socket.data.userId);
+      console.log("joinUser mismatch", userId, socket.data.userId);
       return;
     }
     const key = String(userId);
     addOnlineUser(userId, socket.id);
     socket.join(key);
-    console.log(`User ${userId} joined room ${key}`);
+    console.log("User joined room", key);
   });
 
   socket.on("typing", ({ receiverId, typing }) => {
@@ -132,3 +133,6 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Export io for other modules if needed
+module.exports = { io };

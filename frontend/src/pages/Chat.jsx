@@ -74,7 +74,9 @@ function Chat() {
     };
 
     socket.on("connect", () => {
-      socket.emit("register", user.id);
+      console.log("Socket connected", socket.id);
+      socket.emit("joinUser", user.id);
+      console.log("Joined user room", user.id);
     });
 
     socket.on("connect_error", (err) => {
@@ -82,6 +84,7 @@ function Chat() {
     });
 
     socket.on("newMessage", (message) => {
+      console.log("newMessage received", message);
       const currentFriend = activeFriendRef.current;
       if (!currentFriend) return;
 
@@ -92,8 +95,29 @@ function Chat() {
       if (!isRelevant) return;
 
       setMessages((prev) => {
-        if (prev.some((msg) => String(msg.id) === String(message.id))) {
+        const incomingId = String(message.id);
+        if (prev.some((msg) => String(msg.id) === incomingId)) {
           return prev;
+        }
+
+        // If this message was just optimistically added by the sender, replace the temp
+        if (String(message.sender_id) === String(user.id)) {
+          const tempIndex = prev.findIndex(
+            (m) => String(m.id).startsWith("temp-") && m.text === message.message
+          );
+          if (tempIndex !== -1) {
+            const newPrev = [...prev];
+            newPrev[tempIndex] = {
+              id: message.id,
+              sender: "me",
+              text: message.message,
+              time: new Date(message.created_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            };
+            return newPrev;
+          }
         }
 
         const incoming = {
