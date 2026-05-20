@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = `${import.meta.env.VITE_API_URL}/messages`;
+const API = `${import.meta.env.VITE_API_URL}/api/messages`;
 
 const getConfig = () => {
   const token = localStorage.getItem("token");
