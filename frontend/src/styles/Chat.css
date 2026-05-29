@@ -16,12 +16,24 @@
   color: var(--text);
 }
 
+/* --- FIX 3: SIDEBAR AVATAR CROPPING --- */
 .chat-sidebar {
   background: var(--surface);
   border-right: 1px solid #e2e8f0;
   padding: 18px;
   display: flex;
   flex-direction: column;
+}
+
+/* Base styling rule for all avatars in your application */
+.chat-sidebar img,
+.chat-header img,
+.message-inner > img {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important; /* Forces the image to crop perfectly into a square/circle without squeezing */
+  flex-shrink: 0;
 }
 
 .chat-main {
@@ -41,21 +53,26 @@
   flex-shrink: 0;
 }
 
+/* --- FIX 4: TOP NAV OVERLAP PADDING --- */
 .chat-messages {
   flex: 1 1 auto;
-  padding: 20px;
+  padding: 24px 20px;
+  padding-top: 30px; /* Gives the top message room so it never hides under the navbar header */
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: hidden; /* Banishes horizontal scrollbars forever */
   -webkit-overflow-scrolling: touch;
   background: linear-gradient(rgba(238, 244, 255, 0.95), rgba(238, 244, 255, 0.95));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+/* --- FIX 4: INCOMING MESSAGE LAYOUT & AVATAR ALIGNMENT --- */
 .message-row {
   width: 100%;
   display: flex;
-  margin-bottom: 12px;
   position: relative;
-  align-items: flex-end;
+  margin-bottom: 4px;
 }
 
 .message-row.me {
@@ -68,182 +85,234 @@
 
 .message-inner {
   display: flex;
-  align-items: flex-end;
-  max-width: 100%;
+  align-items: flex-end; /* Dynamically locks the sender avatar to the bottom line of the chat bubble */
+  gap: 10px; /* Space between user image and the message bubble */
+  max-width: 75%;
 }
 
+/* --- FIX 2: BUBBLE LAYOUT & NORMALIZATION --- */
 .message-bubble {
   width: fit-content;
-  max-width: 60%;
-  min-width: 80px;
+  min-width: 90px;
+  max-width: 100%; /* Adapts cleanly inside the message-inner max constraint */
   padding: 10px 14px;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   line-height: 1.5;
-  word-break: break-word;
-  overflow-wrap: break-word;
   position: relative;
   box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 .message-bubble.me-bubble {
   background: var(--accent);
-  color: #fff;
-  border-bottom-right-radius: 6px;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
 }
 
 .message-bubble.other-bubble {
   background: var(--surface);
   color: var(--text);
-  border-bottom-left-radius: 6px;
+  border-bottom-left-radius: 4px;
   border: 1px solid var(--border);
 }
 
 .message-text {
   font-size: 0.95rem;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
 }
 
+/* --- FIX 1: TEXT CONTRAST & OVERLAPPING METADATA --- */
 .message-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: rgba(15, 23, 42, 0.6);
-  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.72rem;
+  margin-top: 2px;
+  font-weight: 500;
 }
 
+/* Forces crisp, high-contrast white visibility for metadata inside your sent blue bubbles */
+.message-bubble.me-bubble .message-meta,
+.message-bubble.me-bubble .reply-author,
+.message-bubble.me-bubble .reply-snippet {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.message-bubble.other-bubble .message-meta {
+  color: rgba(15, 23, 42, 0.45);
+}
+
+/* Nested Reply Previews Inside Bubbles */
 .message-reply-preview {
-  background: rgba(15, 23, 42, 0.06);
-  border-left: 3px solid rgba(37, 99, 235, 0.22);
-  border-radius: 12px;
-  padding: 8px 10px;
-  margin-bottom: 6px;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+  font-size: 0.85rem;
+}
+
+.message-bubble.me-bubble .message-reply-preview {
+  background: rgba(255, 255, 255, 0.15);
+  border-left: 3px solid #ffffff;
+}
+
+.message-bubble.other-bubble .message-reply-preview {
+  background: var(--surface-muted);
+  border-left: 3px solid var(--accent);
 }
 
 .reply-author {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .reply-snippet {
-  font-size: 0.85rem;
   color: var(--muted);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* --- FIX: REACTION OVERLAY TOGGLED BY 3-DOTS MENU --- */
 .message-actions {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: calc(100% + 6px); /* Floating directly above the bubble */
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 4px;
+  padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-  backdrop-filter: blur(12px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  z-index: 50;
   white-space: nowrap;
+  
+  /* Hidden by default: Removed the old layout-breaking hover state rules */
+  display: none; 
 }
 
-.message-row:hover .message-actions,
-.message-row .message-actions.open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(-50%) scale(1);
+/* This class applies ONLY when open state is active in your Chat.jsx menu hook */
+.message-actions.open {
+  display: flex !important;
 }
 
 .message-row.me .message-actions {
-  right: calc(100% + 8px);
+  right: 12px;
 }
 
 .message-row.other .message-actions {
-  left: calc(100% + 8px);
+  left: 54px;
 }
 
 .action-divider {
   width: 1px;
-  height: 22px;
-  background: rgba(15, 23, 42, 0.1);
-  border-radius: 1px;
+  height: 18px;
+  background: #e2e8f0;
+  margin: 0 4px;
 }
 
 .reaction-btn {
   border: none;
   background: transparent;
   font-size: 16px;
-  padding: 6px;
-  border-radius: 8px;
+  padding: 4px 6px;
+  border-radius: 50%;
   cursor: pointer;
+  transition: transform 0.1s ease;
 }
 
-.reaction-btn:hover,
-.reply-action:hover,
-.message-options:hover {
-  background: rgba(15, 23, 42, 0.08);
+.reaction-btn:hover {
+  transform: scale(1.2);
+  background: #f1f5f9;
 }
 
 .reaction-btn.active {
-  background: rgba(37, 99, 235, 0.14);
+  background: #e0f2fe;
 }
 
 .reply-action {
   border: none;
   background: transparent;
   color: var(--accent);
-  padding: 6px 8px;
-  border-radius: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.85rem;
 }
 
+.reply-action:hover {
+  background: #f1f5f9;
+}
+
+/* Three Dots Context Icon Configuration */
 .message-options {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  background: transparent;
   border: none;
-  background: rgba(15, 23, 42, 0.06);
-  color: rgba(15, 23, 42, 0.85);
+  color: currentColor;
+  opacity: 0.3;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 10px;
+  padding: 4px;
+  font-size: 1.1rem;
+  align-self: center;
+  transition: opacity 0.2s ease;
 }
 
+.message-row:hover .message-options {
+  opacity: 0.8;
+}
+
+.message-options:hover {
+  opacity: 1 !important;
+}
+
+/* --- REACTION PILLS SUMMARY --- */
 .reaction-summary {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  position: absolute;
+  bottom: -12px;
+  z-index: 10;
+}
+
+.message-row.me .reaction-summary {
+  right: 14px;
+}
+
+.message-row.other .reaction-summary {
+  left: 14px;
 }
 
 .reaction-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgba(15, 23, 42, 0.08);
+  gap: 4px;
+  padding: 2px 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  color: var(--text);
 }
 
+/* --- BOTTOM INPUT AREA BAR STYLE --- */
 .chat-input-wrapper {
   position: relative;
+  background: var(--surface);
 }
 
 .reply-preview-bar {
@@ -252,8 +321,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.96);
+  border-radius: 10px;
+  background: var(--surface-muted);
   border-left: 4px solid var(--accent);
   margin: 10px 16px 0;
 }
@@ -341,15 +410,7 @@
     display: none;
   }
 
-  .message-bubble {
-    max-width: 82%;
-  }
-
-  .message-actions {
-    right: auto;
-    left: 8px;
-    top: auto;
-    bottom: calc(100% + 8px);
-    transform: translateY(0);
+  .message-inner {
+    max-width: 88%;
   }
 }
