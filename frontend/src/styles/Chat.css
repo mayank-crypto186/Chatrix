@@ -493,3 +493,133 @@
     transform-origin: bottom left;
   }
 }
+
+.message-row {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.message-bubble {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-bubble p {
+  color: inherit;
+  word-break: break-word;
+}
+
+.message-actions {
+  position: absolute;
+  top: -36px;
+  display: none;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 20px;
+  z-index: 10;
+  align-items: center;
+  gap: 6px;
+}
+
+.message-row.me .message-actions {
+  left: -140px; 
+}
+
+.message-row.other .message-actions {
+  right: -140px;
+}
+
+.message-row:hover .message-actions {
+  display: flex;
+}
+
+.reply-action {
+  font-weight: 600;
+  color: #2563eb !important;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.reply-action:hover {
+  background: #e2e8f0;
+}
+
+.reaction-buttons {
+  display: flex;
+  gap: 3px;
+  border-left: 1px solid #e2e8f0;
+  padding-left: 6px;
+}
+
+.reaction-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.reaction-btn:hover {
+  background: #f1f5f9;
+  transform: scale(1.2);
+}
+
+.reaction-btn.active {
+  background: #e0f2fe;
+  border: 1px solid #7dd3fc;
+}
+
+.reaction-summary {
+  position: absolute;
+  bottom: -16px;
+  display: flex;
+  gap: 4px;
+  z-index: 5;
+}
+
+.message-row.me .reaction-summary {
+  right: 12px;
+}
+
+.message-row.other .reaction-summary {
+  left: 12px;
+}
+
+.reaction-pill {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 2px 8px !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  color: #1f2937 !important;
+  font-weight: 600;
+}
+
+.message-row.me .message-reply-preview {
+  background: rgba(255, 255, 255, 0.15);
+  border-left: 3px solid #ffffff;
+}
+
+.message-row.me .message-reply-preview p {
+  color: #e0f2fe;
+}
+
+.message-row.me .reply-label {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.message-row.other .message-reply-preview {
+  background: #f8fafc;
+  border-left: 3px solid #2563eb;
+}
