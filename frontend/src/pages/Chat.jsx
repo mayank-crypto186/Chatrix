@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "../styles/Chat.css";
-import { getConversation, sendMessage } from "../api/messageApi";
+import { getConversation, sendMessage, toggleReaction } from "../api/messageApi";
 import { getFriends } from "../api/friendApi";
 
 function Chat() {
@@ -25,6 +25,8 @@ function Chat() {
   const [activeFriend, setActiveFriend] = useState(location.state?.friend || null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +59,8 @@ function Chat() {
     const user = JSON.parse(localStorage.getItem("user") || "null");
 
     if (!token || !user?.id) return;
+
+    setCurrentUser(user);
 
     const socket = io(import.meta.env.VITE_API_URL, {
       auth: { token },
@@ -128,6 +132,9 @@ function Chat() {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          replyTo: message.reply_to || null,
+          reactions: message.reactions || [],
+          myReaction: message.my_reaction || null,
         };
 
         return [...prev, incoming];
@@ -212,6 +219,9 @@ function Chat() {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          replyTo: message.reply_to || null,
+          reactions: message.reactions || [],
+          myReaction: message.my_reaction || null,
         }));
 
         setMessages(formattedMessages);
@@ -280,14 +290,6 @@ function Chat() {
       typingTimeoutRef.current = null;
     }
     typingSentRef.current = false;
-    e.preventDefault();
-
-    if (!activeFriend) {
-      setError("Please select a chat first.");
-      return;
-    }
-
-    if (!messageText.trim()) return;
 
     const messageToSend = messageText.trim();
     const tempId = `temp-${Date.now()}`;
@@ -297,6 +299,9 @@ function Chat() {
       text: messageToSend,
       time: getCurrentTime(),
       status: "sent",
+      replyTo,
+      reactions: [],
+      myReaction: null,
     };
 
     setMessages((prev) => [...prev, newMessage]);
@@ -305,7 +310,7 @@ function Chat() {
     setError("");
 
     try {
-      const response = await sendMessage(activeFriend.id, messageToSend);
+      const response = await sendMessage(activeFriend.id, messageToSend, replyTo?.id);
       const savedMessage = response.data;
 
       setMessages((prev) =>
@@ -319,10 +324,15 @@ function Chat() {
                   hour: "2-digit",
                   minute: "2-digit",
                 }),
+                replyTo: savedMessage.reply_to || null,
+                reactions: savedMessage.reactions || [],
+                myReaction: savedMessage.my_reaction || null,
               }
             : msg
         )
       );
+
+      setReplyTo(null);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send message.");
     }
@@ -332,6 +342,35 @@ function Chat() {
     setActiveFriend(friend);
     setShowSidebar(false);
     navigate(`/chat/${friend.id}`, { state: { friend } });
+  };
+
+  const handleReply = (message) => {
+    setReplyTo({
+      id: message.id,
+      text: message.text,
+      sender: message.sender,
+    });
+  };
+
+  const handleToggleReaction = async (messageId, emoji) => {
+    try {
+      const response = await toggleReaction(messageId, emoji);
+      const updated = response.data;
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                reactions: updated.reactions || [],
+                myReaction: updated.my_reaction || null,
+              }
+            : msg
+        )
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update reaction.");
+    }
   };
 
   const renderStatus = (isOnline) => {
@@ -445,10 +484,52 @@ function Chat() {
               className={`message-row ${msg.sender === "me" ? "me" : "other"}`}
             >
               <div className="message-bubble">
+                {msg.replyTo && (
+                  <div className="message-reply-preview">
+                    <span className="reply-label">
+                      Replying to {msg.replyTo.sender_id === currentUser?.id || msg.replyTo.sender === "me" ? "You" : activeFriend?.name}
+                    </span>
+                    <p>{msg.replyTo.message || msg.replyTo.text}</p>
+                  </div>
+                )}
+
                 <p>{msg.text}</p>
                 <span>
                   {msg.time} {msg.sender === "me" ? "✓✓" : ""}
                 </span>
+
+                <div className="message-actions">
+                  <button
+                    type="button"
+                    className="reply-action"
+                    onClick={() => handleReply(msg)}
+                  >
+                    Reply
+                  </button>
+                  <div className="reaction-buttons">
+                    {["👍", "❤️", "😂", "😮"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className={`reaction-btn ${msg.myReaction === emoji ? "active" : ""}`}
+                        onClick={() => handleToggleReaction(msg.id, emoji)}
+                        aria-label={`React with ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {msg.reactions.length > 0 && (
+                  <div className="reaction-summary">
+                    {msg.reactions.map((reaction) => (
+                      <span key={reaction.emoji} className="reaction-pill">
+                        {reaction.emoji} {reaction.count}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -464,6 +545,22 @@ function Chat() {
                   setMessageText((prev) => prev + emojiData.emoji)
                 }
               />
+            </div>
+          )}
+
+          {replyTo && (
+            <div className="input-reply-preview">
+              <div className="input-reply-header">
+                Replying to {replyTo.sender === "me" ? "You" : activeFriend?.name || "Them"}
+                <button
+                  type="button"
+                  className="clear-reply"
+                  onClick={() => setReplyTo(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="input-reply-text">{replyTo.text}</div>
             </div>
           )}
 
