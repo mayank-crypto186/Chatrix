@@ -39,6 +39,7 @@ function Chat() {
   const typingTimeoutRef = useRef(null);
   const typingSentRef = useRef(false);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [openActionId, setOpenActionId] = useState(null);
 
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString([], {
@@ -416,6 +417,10 @@ function Chat() {
     }
   };
 
+  const toggleActionPanel = (messageId) => {
+    setOpenActionId((prev) => (String(prev) === String(messageId) ? null : messageId));
+  };
+
   const renderStatus = (isOnline) => {
     return isOnline ? "Online" : "Offline";
   };
@@ -506,7 +511,7 @@ function Chat() {
           </div>
         </header>
 
-        <section className="messages-area">
+        <section className="chat-messages">
           {loading && <div className="loading">Loading conversation...</div>}
           {error && <div className="chat-error">{error}</div>}
           {!loading && !activeFriend && (
@@ -524,17 +529,21 @@ function Chat() {
           {!loading && messages.map((msg) => {
             const isMe = msg.sender === "me";
             const isHovered = String(hoveredMessageId) === String(msg.id);
+            const isOpen = String(openActionId) === String(msg.id);
+            const showActions = isHovered || isOpen;
+
             const toolbarStyle = {
               position: "absolute",
-              top: 8,
+              top: -44,
               display: "flex",
               alignItems: "center",
               gap: 8,
-              opacity: isHovered ? 1 : 0,
-              transition: "opacity 0.15s ease",
-              pointerEvents: isHovered ? "auto" : "none",
+              opacity: showActions ? 1 : 0,
+              transform: showActions ? "translateY(0) scale(1)" : "translateY(6px) scale(0.98)",
+              transition: "opacity 160ms ease, transform 160ms ease",
+              pointerEvents: showActions ? "auto" : "none",
               zIndex: 40,
-              ...(isMe ? { right: "100%", marginRight: 8 } : { left: "100%", marginLeft: 8 }),
+              ...(isMe ? { right: 0 } : { left: 0 }),
             };
 
             return (
@@ -545,48 +554,52 @@ function Chat() {
                 onMouseLeave={() => setHoveredMessageId(null)}
                 style={{ position: "relative" }}
               >
-                <div className="message-actions" style={toolbarStyle} aria-hidden={!isHovered}>
-                  {["👍", "❤️", "😂", "😮"].map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className={`reaction-btn ${msg.myReaction === emoji ? "active" : ""}`}
-                      onClick={() => handleReaction(msg.id, emoji)}
-                      aria-label={`React with ${emoji}`}
-                    >
-                      {emoji}
+                <div className="message-inner" style={{ position: "relative" }}>
+                  <div className="message-actions" style={toolbarStyle} aria-hidden={!showActions}>
+                    {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className={`reaction-btn ${msg.myReaction === emoji ? "active" : ""}`}
+                        onClick={() => handleReaction(msg.id, emoji)}
+                        aria-label={`React with ${emoji}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+
+                    <div className="action-divider" />
+
+                    <button type="button" className="reply-action" onClick={() => handleReply(msg)}>
+                      Reply
                     </button>
-                  ))}
+                  </div>
 
-                  <div style={{ width: 1, height: 24, background: "rgba(15,23,42,0.06)", margin: "0 6px" }} />
+                  <div className={`message-bubble ${isMe ? 'me-bubble' : 'other-bubble'}`}>
+                    <button className="message-options" type="button" onClick={() => setOpenActionId(isOpen ? null : msg.id)} aria-label="Options">
+                      <MoreVertical size={14} />
+                    </button>
 
-                  <button type="button" className="reply-action" onClick={() => handleReply(msg)}>
-                    Reply
-                  </button>
-                </div>
+                    {msg.replyToMessage && (
+                      <div className="message-reply-preview">
+                        <div className="reply-author">{msg.replyToMessage.sender_name || (msg.replyToMessage.sender === 'me' ? 'You' : activeFriend?.name)}</div>
+                        <div className="reply-snippet">{msg.replyToMessage.message || msg.replyToMessage.text}</div>
+                      </div>
+                    )}
 
-                <div className="message-bubble">
-                  {msg.replyToMessage && (
-                    <div className="message-reply-preview">
-                      <div className="reply-author">{msg.replyToMessage.sender_name || (msg.replyToMessage.sender === 'me' ? 'You' : activeFriend?.name)}</div>
-                      <div className="reply-snippet">{msg.replyToMessage.message || msg.replyToMessage.text}</div>
-                    </div>
-                  )}
+                    <div className="message-text">{msg.text}</div>
+                    <div className="message-meta">{msg.time} {isMe ? "✓✓" : ""}</div>
 
-                  <p>{msg.text}</p>
-                  <span>
-                    {msg.time} {isMe ? "✓✓" : ""}
-                  </span>
-
-                  {msg.reactions && msg.reactions.length > 0 && (
-                    <div className="reaction-summary">
-                      {msg.reactions.map((reaction) => (
-                        <span key={reaction.emoji} className="reaction-pill">
-                          {reaction.emoji} {reaction.count}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                    {msg.reactions && msg.reactions.length > 0 && (
+                      <div className="reaction-summary">
+                        {msg.reactions.map((reaction) => (
+                          <span key={reaction.emoji} className="reaction-pill">
+                            {reaction.emoji} {reaction.count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
