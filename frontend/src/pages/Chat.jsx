@@ -32,14 +32,14 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [friendTyping, setFriendTyping] = useState(false);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [openActionId, setOpenActionId] = useState(null);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
   const activeFriendRef = useRef(activeFriend);
   const typingTimeoutRef = useRef(null);
   const typingSentRef = useRef(false);
-  const [hoveredMessageId, setHoveredMessageId] = useState(null);
-  const [openActionId, setOpenActionId] = useState(null);
 
   const getCurrentTime = () => {
     return new Date().toLocaleTimeString([], {
@@ -71,18 +71,9 @@ function Chat() {
 
     socketRef.current = socket;
 
-    const emitTyping = (typing) => {
-      if (!socketRef.current || !activeFriendRef.current) return;
-      socketRef.current.emit("typing", {
-        receiverId: activeFriendRef.current.id,
-        typing,
-      });
-    };
-
     socket.on("connect", () => {
       console.log("Socket connected", socket.id);
       socket.emit("joinUser", user.id);
-      console.log("Joined user room", user.id);
     });
 
     socket.on("connect_error", (err) => {
@@ -90,7 +81,6 @@ function Chat() {
     });
 
     socket.on("newMessage", (message) => {
-      console.log("newMessage received", message);
       const currentFriend = activeFriendRef.current;
       if (!currentFriend) return;
 
@@ -106,7 +96,6 @@ function Chat() {
           return prev;
         }
 
-        // If this message was just optimistically added by the sender, replace the temp
         if (String(message.sender_id) === String(user.id)) {
           const tempIndex = prev.findIndex(
             (m) => String(m.id).startsWith("temp-") && m.text === message.message
@@ -161,9 +150,7 @@ function Chat() {
 
       if (payload.typing) {
         setFriendTyping(true);
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = setTimeout(() => {
           setFriendTyping(false);
           typingTimeoutRef.current = null;
@@ -177,9 +164,7 @@ function Chat() {
       }
     });
 
-    // Listen for reaction updates via socket (if backend emits them)
     socket.on("reactionUpdated", (payload) => {
-      // payload expected: { messageId, reactions, my_reaction }
       if (!payload || !payload.messageId) return;
       setMessages((prev) =>
         prev.map((m) =>
@@ -195,9 +180,7 @@ function Chat() {
     });
 
     return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -214,9 +197,7 @@ function Chat() {
           const matchedFriend = friendsList.find(
             (friend) => String(friend.id) === String(friendId)
           );
-          if (matchedFriend) {
-            setActiveFriend(matchedFriend);
-          }
+          if (matchedFriend) setActiveFriend(matchedFriend);
         }
       } catch (err) {
         setError("Failed to load friends. Please refresh the page.");
@@ -227,9 +208,7 @@ function Chat() {
   }, [friendId]);
 
   useEffect(() => {
-    if (!activeFriend) {
-      return;
-    }
+    if (!activeFriend) return;
 
     const fetchConversation = async () => {
       setLoading(true);
@@ -240,11 +219,8 @@ function Chat() {
         const conversation = response.data || [];
 
         const groupReactions = (reactions) => {
-          if (!reactions) return [];
-          if (reactions.length === 0) return [];
-          // already grouped (has count)
+          if (!reactions || reactions.length === 0) return [];
           if (reactions[0].count !== undefined) return reactions;
-
           const map = {};
           reactions.forEach((r) => {
             const e = r.emoji;
@@ -255,10 +231,7 @@ function Chat() {
 
         const formattedMessages = conversation.map((message) => ({
           id: message.id,
-          sender:
-            String(message.sender_id) === String(activeFriend.id)
-              ? "other"
-              : "me",
+          sender: String(message.sender_id) === String(activeFriend.id) ? "other" : "me",
           text: message.message,
           time: new Date(message.created_at).toLocaleTimeString([], {
             hour: "2-digit",
@@ -282,7 +255,10 @@ function Chat() {
   }, [activeFriend]);
 
   useEffect(() => {
-    if (location.state?.friend && String(location.state.friend.id) !== String(activeFriend?.id)) {
+    if (
+      location.state?.friend &&
+      String(location.state.friend.id) !== String(activeFriend?.id)
+    ) {
       setActiveFriend(location.state.friend);
       setFriendTyping(false);
     }
@@ -291,23 +267,15 @@ function Chat() {
   const handleTyping = () => {
     if (!socketRef.current || !activeFriend) return;
     if (!typingSentRef.current) {
-      socketRef.current.emit("typing", {
-        receiverId: activeFriend.id,
-        typing: true,
-      });
+      socketRef.current.emit("typing", { receiverId: activeFriend.id, typing: true });
       typingSentRef.current = true;
     }
 
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
       if (socketRef.current) {
-        socketRef.current.emit("typing", {
-          receiverId: activeFriend.id,
-          typing: false,
-        });
+        socketRef.current.emit("typing", { receiverId: activeFriend.id, typing: false });
       }
       typingSentRef.current = false;
       typingTimeoutRef.current = null;
@@ -325,10 +293,7 @@ function Chat() {
     if (!messageText.trim()) return;
 
     if (socketRef.current) {
-      socketRef.current.emit("typing", {
-        receiverId: activeFriend.id,
-        typing: false,
-      });
+      socketRef.current.emit("typing", { receiverId: activeFriend.id, typing: false });
     }
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -417,31 +382,31 @@ function Chat() {
     }
   };
 
-  const toggleActionPanel = (messageId) => {
-    setOpenActionId((prev) => (String(prev) === String(messageId) ? null : messageId));
-  };
+  const renderStatus = (isOnline) => (isOnline ? "Online" : "Offline");
 
-  const renderStatus = (isOnline) => {
-    return isOnline ? "Online" : "Offline";
+  // Group messages by time for timestamp pills
+  const shouldShowTimestamp = (messages, index) => {
+    if (index === 0) return true;
+    return messages[index].time !== messages[index - 1].time;
   };
 
   return (
     <div className="chat-page">
       {showSidebar && (
-        <div
-          className="sidebar-overlay"
-          onClick={() => setShowSidebar(false)}
-        ></div>
+        <div className="sidebar-overlay" onClick={() => setShowSidebar(false)} />
       )}
 
+      {/* ── SIDEBAR ── */}
       <aside className={`chat-sidebar ${showSidebar ? "show" : ""}`}>
         <div className="chat-sidebar-header">
           <h2>Chats</h2>
-          <MoreVertical size={22} />
+          <button type="button" className="sidebar-menu-btn">
+            <MoreVertical size={22} />
+          </button>
         </div>
 
         <div className="chat-search">
-          <Search size={18} />
+          <Search size={16} color="#94a3b8" />
           <input type="text" placeholder="Search chats..." disabled />
         </div>
 
@@ -460,12 +425,22 @@ function Chat() {
                     src={`https://i.pravatar.cc/100?img=${friend.id}`}
                     alt={friend.name}
                   />
-                  <span className={`status-dot ${friend.is_online ? "online" : "offline"}`}></span>
+                  <span
+                    className={`status-dot ${friend.is_online ? "online" : "offline"}`}
+                  />
                 </div>
 
                 <div className="chat-user-info">
-                  <h3>{friend.name}</h3>
-                  <p>{friend.username || "Friend"}</p>
+                  <div className="chat-user-name-row">
+                    <h3>{friend.name}</h3>
+                    {friend.last_message_time && (
+                      <span className="chat-user-time">{friend.last_message_time}</span>
+                    )}
+                  </div>
+                  <div className="chat-user-preview-row">
+                    <p>{friend.last_message || friend.username || "Say hello!"}</p>
+                    {friend.is_online && <span className="online-indicator" />}
+                  </div>
                 </div>
               </button>
             ))
@@ -473,7 +448,9 @@ function Chat() {
         </div>
       </aside>
 
+      {/* ── MAIN CHAT ── */}
       <main className="chat-main">
+        {/* Header */}
         <header className="chat-header">
           <div className="chat-user-title">
             <button
@@ -484,14 +461,22 @@ function Chat() {
               <Menu size={20} />
             </button>
 
-            <img
-              src={
-                activeFriend
-                  ? `https://i.pravatar.cc/100?img=${activeFriend.id}`
-                  : "https://i.pravatar.cc/100?img=32"
-              }
-              alt={activeFriend?.name || "Select a chat"}
-            />
+            <div className="avatar-wrapper">
+              <img
+                src={
+                  activeFriend
+                    ? `https://i.pravatar.cc/100?img=${activeFriend.id}`
+                    : "https://i.pravatar.cc/100?img=32"
+                }
+                alt={activeFriend?.name || "Select a chat"}
+              />
+              {activeFriend && (
+                <span
+                  className={`status-dot ${activeFriend.is_online ? "online" : "offline"}`}
+                />
+              )}
+            </div>
+
             <div>
               <h3>{activeFriend?.name || "Select a chat"}</h3>
               <p>
@@ -505,15 +490,23 @@ function Chat() {
           </div>
 
           <div className="chat-actions">
-            <Phone size={21} />
-            <Video size={22} />
-            <MoreVertical size={22} />
+            <button type="button" className="header-action-btn">
+              <Phone size={20} />
+            </button>
+            <button type="button" className="header-action-btn">
+              <Video size={21} />
+            </button>
+            <button type="button" className="header-action-btn">
+              <MoreVertical size={21} />
+            </button>
           </div>
         </header>
 
+        {/* Messages */}
         <section className="chat-messages">
           {loading && <div className="loading">Loading conversation...</div>}
           {error && <div className="chat-error">{error}</div>}
+
           {!loading && !activeFriend && (
             <div className="empty-message">
               Select a friend from the left sidebar to view messages.
@@ -521,93 +514,141 @@ function Chat() {
           )}
 
           {!loading && activeFriend && messages.length === 0 && (
-            <div className="empty-message">
-              No messages yet. Send the first message.
-            </div>
+            <div className="empty-message">No messages yet. Send the first message.</div>
           )}
 
-          {!loading && messages.map((msg) => {
-            const isMe = msg.sender === "me";
-            const isHovered = String(hoveredMessageId) === String(msg.id);
-            const isOpen = String(openActionId) === String(msg.id);
-            const showActions = isHovered || isOpen;
+          {!loading &&
+            messages.map((msg, index) => {
+              const isMe = msg.sender === "me";
+              const isHovered = String(hoveredMessageId) === String(msg.id);
+              const isOpen = String(openActionId) === String(msg.id);
+              const showActions = isHovered || isOpen;
+              const showTimestamp = shouldShowTimestamp(messages, index);
 
-            const toolbarStyle = {
-              position: "absolute",
-              top: -44,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              opacity: showActions ? 1 : 0,
-              transform: showActions ? "translateY(0) scale(1)" : "translateY(6px) scale(0.98)",
-              transition: "opacity 160ms ease, transform 160ms ease",
-              pointerEvents: showActions ? "auto" : "none",
-              zIndex: 40,
-              ...(isMe ? { right: 0 } : { left: 0 }),
-            };
+              const toolbarStyle = {
+                position: "absolute",
+                top: -48,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                opacity: showActions ? 1 : 0,
+                transform: showActions
+                  ? "translateY(0) scale(1)"
+                  : "translateY(6px) scale(0.97)",
+                transition: "opacity 160ms ease, transform 160ms ease",
+                pointerEvents: showActions ? "auto" : "none",
+                zIndex: 40,
+                ...(isMe ? { right: 0 } : { left: 0 }),
+              };
 
-            return (
-              <div
-                key={msg.id}
-                className={`message-row ${isMe ? "me" : "other"}`}
-                onMouseEnter={() => setHoveredMessageId(msg.id)}
-                onMouseLeave={() => setHoveredMessageId(null)}
-                style={{ position: "relative" }}
-              >
-                <div className="message-inner" style={{ position: "relative" }}>
-                  <div className="message-actions" style={toolbarStyle} aria-hidden={!showActions}>
-                    {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className={`reaction-btn ${msg.myReaction === emoji ? "active" : ""}`}
-                        onClick={() => handleReaction(msg.id, emoji)}
-                        aria-label={`React with ${emoji}`}
+              return (
+                <div key={msg.id}>
+                  {/* Timestamp pill */}
+                  {showTimestamp && (
+                    <div className="message-timestamp-pill">
+                      <span>{msg.time}</span>
+                    </div>
+                  )}
+
+                  <div
+                    className={`message-row ${isMe ? "me" : "other"}`}
+                    onMouseEnter={() => setHoveredMessageId(msg.id)}
+                    onMouseLeave={() => setHoveredMessageId(null)}
+                    style={{ position: "relative" }}
+                  >
+                    <div className="message-inner" style={{ position: "relative" }}>
+                      {/* Reaction + reply toolbar */}
+                      <div
+                        className="message-actions"
+                        style={toolbarStyle}
+                        aria-hidden={!showActions}
                       >
-                        {emoji}
-                      </button>
-                    ))}
-
-                    <div className="action-divider" />
-
-                    <button type="button" className="reply-action" onClick={() => handleReply(msg)}>
-                      Reply
-                    </button>
-                  </div>
-
-                  <div className={`message-bubble ${isMe ? 'me-bubble' : 'other-bubble'}`}>
-                    <button className="message-options" type="button" onClick={() => setOpenActionId(isOpen ? null : msg.id)} aria-label="Options">
-                      <MoreVertical size={14} />
-                    </button>
-
-                    {msg.replyToMessage && (
-                      <div className="message-reply-preview">
-                        <div className="reply-author">{msg.replyToMessage.sender_name || (msg.replyToMessage.sender === 'me' ? 'You' : activeFriend?.name)}</div>
-                        <div className="reply-snippet">{msg.replyToMessage.message || msg.replyToMessage.text}</div>
-                      </div>
-                    )}
-
-                    <div className="message-text">{msg.text}</div>
-                    <div className="message-meta">{msg.time} {isMe ? "✓✓" : ""}</div>
-
-                    {msg.reactions && msg.reactions.length > 0 && (
-                      <div className="reaction-summary">
-                        {msg.reactions.map((reaction) => (
-                          <span key={reaction.emoji} className="reaction-pill">
-                            {reaction.emoji} {reaction.count}
-                          </span>
+                        {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className={`reaction-btn ${
+                              msg.myReaction === emoji ? "active" : ""
+                            }`}
+                            onClick={() => handleReaction(msg.id, emoji)}
+                            aria-label={`React with ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
                         ))}
+                        <div className="action-divider" />
+                        <button
+                          type="button"
+                          className="reply-action"
+                          onClick={() => handleReply(msg)}
+                        >
+                          Reply
+                        </button>
                       </div>
-                    )}
+
+                      {/* Bubble */}
+                      <div
+                        className={`message-bubble ${isMe ? "me-bubble" : "other-bubble"}`}
+                      >
+                        {/* Three-dot options inside bubble */}
+                        <button
+                          className="message-options"
+                          type="button"
+                          onClick={() =>
+                            setOpenActionId(isOpen ? null : msg.id)
+                          }
+                          aria-label="Options"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+
+                        {/* Reply preview */}
+                        {msg.replyToMessage && (
+                          <div className="message-reply-preview">
+                            <div className="reply-author">
+                              {msg.replyToMessage.sender_name ||
+                                (msg.replyToMessage.sender === "me"
+                                  ? "You"
+                                  : activeFriend?.name)}
+                            </div>
+                            <div className="reply-snippet">
+                              {msg.replyToMessage.message ||
+                                msg.replyToMessage.text}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="message-text">{msg.text}</div>
+
+                        <div className="message-meta">
+                          {msg.time}
+                          {isMe && <span className="read-ticks"> ✓✓</span>}
+                        </div>
+
+                        {/* Reaction pills */}
+                        {msg.reactions && msg.reactions.length > 0 && (
+                          <div className="reaction-summary">
+                            {msg.reactions.map((reaction) => (
+                              <span
+                                key={reaction.emoji}
+                                className="reaction-pill"
+                              >
+                                {reaction.emoji} {reaction.count}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          <div ref={messagesEndRef}></div>
+          <div ref={messagesEndRef} />
         </section>
 
+        {/* Input */}
         <div className="chat-input-wrapper">
           {showEmoji && (
             <div className="emoji-picker">
@@ -620,18 +661,23 @@ function Chat() {
           )}
 
           {replyingToMessage && (
-            <div className="input-reply-preview reply-preview-bar">
-              <div className="input-reply-header reply-preview-content">
-                Replying to {replyingToMessage.sender === "me" ? "You" : activeFriend?.name || "Them"}
+            <div className="reply-preview-bar">
+              <div className="reply-preview-content">
+                <span className="reply-preview-label">
+                  Replying to{" "}
+                  {replyingToMessage.sender === "me"
+                    ? "You"
+                    : activeFriend?.name || "Them"}
+                </span>
                 <button
                   type="button"
-                  className="clear-reply reply-preview-close"
+                  className="reply-preview-close"
                   onClick={() => setReplyingToMessage(null)}
                 >
                   ×
                 </button>
               </div>
-              <div className="input-reply-text">{replyingToMessage.text}</div>
+              <div className="reply-preview-text">{replyingToMessage.text}</div>
             </div>
           )}
 
@@ -641,11 +687,11 @@ function Chat() {
               className="input-icon"
               onClick={() => setShowEmoji(!showEmoji)}
             >
-              <Smile size={21} />
+              <Smile size={20} />
             </button>
 
             <button type="button" className="input-icon">
-              <Paperclip size={21} />
+              <Paperclip size={20} />
             </button>
 
             <input
@@ -659,8 +705,12 @@ function Chat() {
               disabled={!activeFriend}
             />
 
-            <button type="submit" className="send-btn" disabled={!activeFriend || !messageText.trim()}>
-              <Send size={20} />
+            <button
+              type="submit"
+              className="send-btn"
+              disabled={!activeFriend || !messageText.trim()}
+            >
+              <Send size={18} />
             </button>
           </form>
         </div>
