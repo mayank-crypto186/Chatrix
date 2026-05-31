@@ -6,6 +6,13 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+console.log("Cloudinary config check:", {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "MISSING",
+  api_key: process.env.CLOUDINARY_API_KEY ? "SET" : "MISSING",
+  api_secret: process.env.CLOUDINARY_API_SECRET ? "SET" : "MISSING",
+});
+
 const uploadFile = async (req, res) => {
   try {
     if (!req.file) {
@@ -16,12 +23,10 @@ const uploadFile = async (req, res) => {
     const isImage = file.mimetype.startsWith("image/");
     const isVideo = file.mimetype.startsWith("video/");
 
-    // Determine resource type for Cloudinary
-    let resourceType = "raw"; // default for docs, pdfs, etc.
+    let resourceType = "raw";
     if (isImage) resourceType = "image";
     if (isVideo) resourceType = "video";
 
-    // Stream the buffer to Cloudinary
     const streamUpload = () =>
       new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
