@@ -32,8 +32,6 @@ app.use(
   })
 );
 
-app.use("/upload", require("./routes/uploadRoutes"));
-
 app.use(express.json());
 
 const server = http.createServer(app);
@@ -149,6 +147,7 @@ io.on("connection", (socket) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/upload", require("./routes/uploadRoutes"));
 
 app.get("/", (req, res) => {
   res.send("Chatrix backend is running");
