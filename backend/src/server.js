@@ -32,6 +32,8 @@ app.use(
   })
 );
 
+app.use("/upload", require("./routes/uploadRoutes"));
+
 app.use(express.json());
 
 const server = http.createServer(app);

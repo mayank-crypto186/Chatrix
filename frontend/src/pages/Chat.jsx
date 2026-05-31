@@ -10,11 +10,16 @@ import {
   Smile,
   Paperclip,
   Menu,
+  X,
+  FileText,
+  Download,
+  Image as ImageIcon,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "../styles/Chat.css";
 import { getConversation, sendMessage, toggleReaction } from "../api/messageApi";
 import { getFriends } from "../api/friendApi";
+import { uploadAttachment } from "../api/uploadApi";
 
 function Chat() {
   const { friendId } = useParams();
@@ -34,6 +39,11 @@ function Chat() {
   const [friendTyping, setFriendTyping] = useState(false);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [openActionId, setOpenActionId] = useState(null);
+
+  // Attachment state
+  const [attachmentPreview, setAttachmentPreview] = useState(null); // { file, url, fileType }
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -110,6 +120,7 @@ function Chat() {
                 hour: "2-digit",
                 minute: "2-digit",
               }),
+              attachment: message.attachment || null,
             };
             return newPrev;
           }
@@ -138,6 +149,7 @@ function Chat() {
           replyToMessage: message.reply_to_message || message.reply_to || null,
           reactions: normalizeReactions(message.reactions || []),
           myReaction: message.my_reaction || null,
+          attachment: message.attachment || null,
         };
 
         return [...prev, incoming];
@@ -240,6 +252,7 @@ function Chat() {
           replyToMessage: message.reply_to_message || message.reply_to || null,
           reactions: groupReactions(message.reactions || []),
           myReaction: message.my_reaction || null,
+          attachment: message.attachment || null,
         }));
 
         setMessages(formattedMessages);
@@ -282,6 +295,47 @@ function Chat() {
     }, 1200);
   };
 
+  // ── Attachment handlers ──────────────────────────────────────
+
+  const handlePaperclipClick = () => {
+    if (!activeFriend) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+
+    const isImage = file.type.startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+
+    setAttachmentPreview({
+      file,
+      previewUrl,
+      fileType: isImage ? "image" : "file",
+      name: file.name,
+      size: file.size,
+    });
+  };
+
+  const clearAttachment = () => {
+    if (attachmentPreview?.previewUrl) {
+      URL.revokeObjectURL(attachmentPreview.previewUrl);
+    }
+    setAttachmentPreview(null);
+  };
+
+  const formatBytes = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // ── Send (text + optional attachment) ────────────────────────
+
   const handleSend = async (e) => {
     e.preventDefault();
 
@@ -290,7 +344,10 @@ function Chat() {
       return;
     }
 
-    if (!messageText.trim()) return;
+    const hasText = messageText.trim();
+    const hasAttachment = !!attachmentPreview;
+
+    if (!hasText && !hasAttachment) return;
 
     if (socketRef.current) {
       socketRef.current.emit("typing", { receiverId: activeFriend.id, typing: false });
@@ -301,9 +358,11 @@ function Chat() {
     }
     typingSentRef.current = false;
 
-    const messageToSend = messageText.trim();
+    const messageToSend = hasText ? messageText.trim() : null;
     const tempId = `temp-${Date.now()}`;
-    const newMessage = {
+
+    // Optimistic UI — show message immediately with local preview
+    const optimisticMsg = {
       id: tempId,
       sender: "me",
       text: messageToSend,
@@ -312,15 +371,40 @@ function Chat() {
       replyToMessage: replyingToMessage,
       reactions: [],
       myReaction: null,
+      attachment: hasAttachment
+        ? {
+            url: attachmentPreview.previewUrl || null,
+            fileType: attachmentPreview.fileType,
+            originalName: attachmentPreview.name,
+            size: attachmentPreview.size,
+            isUploading: true,
+          }
+        : null,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, optimisticMsg]);
     setMessageText("");
     setShowEmoji(false);
     setError("");
 
+    let uploadedAttachment = null;
+
     try {
-      const response = await sendMessage(activeFriend.id, messageToSend, replyingToMessage?.id);
+      // Upload file first if there's an attachment
+      if (hasAttachment) {
+        setUploading(true);
+        const uploadRes = await uploadAttachment(attachmentPreview.file);
+        uploadedAttachment = uploadRes.data;
+        setUploading(false);
+      }
+
+      // Send the message with or without attachment
+      const response = await sendMessage(
+        activeFriend.id,
+        messageToSend,
+        replyingToMessage?.id,
+        uploadedAttachment
+      );
       const savedMessage = response.data;
 
       setMessages((prev) =>
@@ -337,12 +421,18 @@ function Chat() {
                 replyToMessage: savedMessage.reply_to_message || savedMessage.reply_to || null,
                 reactions: savedMessage.reactions || [],
                 myReaction: savedMessage.my_reaction || null,
+                attachment: savedMessage.attachment || null,
               }
             : msg
         )
       );
+
       setReplyingToMessage(null);
+      clearAttachment();
     } catch (err) {
+      setUploading(false);
+      // Remove optimistic message on failure
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setError(err.response?.data?.message || "Failed to send message.");
     }
   };
@@ -384,14 +474,74 @@ function Chat() {
 
   const renderStatus = (isOnline) => (isOnline ? "Online" : "Offline");
 
-  // Group messages by time for timestamp pills
   const shouldShowTimestamp = (messages, index) => {
     if (index === 0) return true;
     return messages[index].time !== messages[index - 1].time;
   };
 
+  // ── Attachment renderer (inside message bubble) ───────────────
+
+  const renderAttachment = (attachment, isMe) => {
+    if (!attachment) return null;
+
+    if (attachment.fileType === "image") {
+      return (
+        <div className={`attachment-image-wrapper ${attachment.isUploading ? "uploading" : ""}`}>
+          {attachment.isUploading && (
+            <div className="attachment-uploading-overlay">
+              <div className="upload-spinner" />
+            </div>
+          )}
+          <img
+            src={attachment.url}
+            alt={attachment.originalName || "image"}
+            className="attachment-image"
+            onClick={() => !attachment.isUploading && window.open(attachment.url, "_blank")}
+          />
+        </div>
+      );
+    }
+
+    // Generic file attachment
+    return (
+      <a
+        href={attachment.isUploading ? undefined : attachment.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`attachment-file ${isMe ? "attachment-file-me" : "attachment-file-other"} ${attachment.isUploading ? "uploading" : ""}`}
+        onClick={(e) => attachment.isUploading && e.preventDefault()}
+      >
+        <div className="attachment-file-icon">
+          {attachment.isUploading ? (
+            <div className="upload-spinner" />
+          ) : (
+            <FileText size={22} />
+          )}
+        </div>
+        <div className="attachment-file-info">
+          <span className="attachment-file-name">{attachment.originalName || "File"}</span>
+          <span className="attachment-file-size">
+            {attachment.isUploading ? "Uploading..." : formatBytes(attachment.size || 0)}
+          </span>
+        </div>
+        {!attachment.isUploading && (
+          <Download size={16} className="attachment-download-icon" />
+        )}
+      </a>
+    );
+  };
+
   return (
     <div className="chat-page">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/mp4,video/webm,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+
       {showSidebar && (
         <div className="sidebar-overlay" onClick={() => setShowSidebar(false)} />
       )}
@@ -543,7 +693,6 @@ function Chat() {
 
               return (
                 <div key={msg.id}>
-                  {/* Timestamp pill */}
                   {showTimestamp && (
                     <div className="message-timestamp-pill">
                       <span>{msg.time}</span>
@@ -590,7 +739,6 @@ function Chat() {
                       <div
                         className={`message-bubble ${isMe ? "me-bubble" : "other-bubble"}`}
                       >
-                        {/* Three-dot options inside bubble */}
                         <button
                           className="message-options"
                           type="button"
@@ -618,7 +766,13 @@ function Chat() {
                           </div>
                         )}
 
-                        <div className="message-text">{msg.text}</div>
+                        {/* Attachment */}
+                        {msg.attachment && renderAttachment(msg.attachment, isMe)}
+
+                        {/* Text */}
+                        {msg.text && (
+                          <div className="message-text">{msg.text}</div>
+                        )}
 
                         <div className="message-meta">
                           {msg.time}
@@ -660,6 +814,39 @@ function Chat() {
             </div>
           )}
 
+          {/* Attachment preview bar */}
+          {attachmentPreview && (
+            <div className="attachment-preview-bar">
+              <div className="attachment-preview-inner">
+                {attachmentPreview.fileType === "image" ? (
+                  <img
+                    src={attachmentPreview.previewUrl}
+                    alt="preview"
+                    className="attachment-preview-thumb"
+                  />
+                ) : (
+                  <div className="attachment-preview-icon">
+                    <FileText size={20} />
+                  </div>
+                )}
+                <div className="attachment-preview-info">
+                  <span className="attachment-preview-name">{attachmentPreview.name}</span>
+                  <span className="attachment-preview-size">
+                    {formatBytes(attachmentPreview.size)}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="attachment-preview-remove"
+                onClick={clearAttachment}
+                aria-label="Remove attachment"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
           {replyingToMessage && (
             <div className="reply-preview-bar">
               <div className="reply-preview-content">
@@ -690,27 +877,47 @@ function Chat() {
               <Smile size={20} />
             </button>
 
-            <button type="button" className="input-icon">
+            <button
+              type="button"
+              className={`input-icon ${attachmentPreview ? "input-icon-active" : ""}`}
+              onClick={handlePaperclipClick}
+              disabled={!activeFriend || uploading}
+              title="Attach a file"
+            >
               <Paperclip size={20} />
             </button>
 
             <input
               type="text"
-              placeholder="Type your message..."
+              placeholder={
+                uploading
+                  ? "Uploading..."
+                  : attachmentPreview
+                  ? "Add a caption (optional)..."
+                  : "Type your message..."
+              }
               value={messageText}
               onChange={(e) => {
                 setMessageText(e.target.value);
                 handleTyping();
               }}
-              disabled={!activeFriend}
+              disabled={!activeFriend || uploading}
             />
 
             <button
               type="submit"
               className="send-btn"
-              disabled={!activeFriend || !messageText.trim()}
+              disabled={
+                !activeFriend ||
+                uploading ||
+                (!messageText.trim() && !attachmentPreview)
+              }
             >
-              <Send size={18} />
+              {uploading ? (
+                <div className="upload-spinner send-spinner" />
+              ) : (
+                <Send size={18} />
+              )}
             </button>
           </form>
         </div>

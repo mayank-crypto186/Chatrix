@@ -1,26 +1,17 @@
-import axios from "axios";
+import api from "./axios";
 
-const API = `${import.meta.env.VITE_API_URL}/api/messages`;
-
-const getConfig = () => ({
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-});
-
-export const getConversation = (friendId) => {
-  return axios.get(`${API}/${friendId}`, getConfig());
+export const sendMessage = async (friendId, message, replyToId = null, attachment = null) => {
+  return api.post(`/messages/${friendId}`, {
+    message,
+    replyToId,
+    attachment, // { url, fileType, originalName, size, publicId } or null
+  });
 };
 
-export const sendMessage = (receiverId, message, replyToId = null) => {
-  return axios.post(
-    `${API}/${receiverId}`,
-    { message, replyToId },
-    getConfig()
-  );
+export const getConversation = async (friendId) => {
+  return api.get(`/messages/${friendId}`);
 };
 
-export const toggleReaction = (messageId, emoji) => {
-  return axios.post(`${API}/${messageId}/reactions`, { emoji }, getConfig());
+export const toggleReaction = async (messageId, emoji) => {
+  return api.post(`/messages/${messageId}/reactions`, { emoji });
 };
-

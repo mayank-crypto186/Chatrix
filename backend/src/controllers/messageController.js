@@ -15,10 +15,14 @@ const sendMessage = async (req, res) => {
   try {
     const senderId = req.user.id;
     const { receiverId } = req.params;
-    const { message, replyToId } = req.body;
+    const { message, replyToId, attachment } = req.body;
 
-    if (!message || !message.trim()) {
-      return res.status(400).json({ message: "Message is required" });
+    // Allow sending if there's either a text message OR an attachment
+    const hasText = message && message.trim();
+    const hasAttachment = attachment && attachment.url;
+
+    if (!hasText && !hasAttachment) {
+      return res.status(400).json({ message: "Message or attachment is required" });
     }
 
     const isFriend = await checkFriendship(senderId, receiverId);
@@ -41,10 +45,19 @@ const sendMessage = async (req, res) => {
     }
 
     const result = await pool.query(
-      `INSERT INTO messages (sender_id, receiver_id, message, reply_to_id)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, attachment_url, attachment_type, attachment_name, attachment_size)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [senderId, receiverId, message.trim(), replyToId || null]
+      [
+        senderId,
+        receiverId,
+        hasText ? message.trim() : null,
+        replyToId || null,
+        hasAttachment ? attachment.url : null,
+        hasAttachment ? attachment.fileType : null,
+        hasAttachment ? attachment.originalName : null,
+        hasAttachment ? attachment.size : null,
+      ]
     );
 
     const newMessage = result.rows[0];
@@ -70,6 +83,14 @@ const sendMessage = async (req, res) => {
       reply_to: replyPayload,
       reactions: [],
       my_reaction: null,
+      attachment: hasAttachment
+        ? {
+            url: newMessage.attachment_url,
+            fileType: newMessage.attachment_type,
+            originalName: newMessage.attachment_name,
+            size: newMessage.attachment_size,
+          }
+        : null,
     };
 
     const io = req.app.get("io");
@@ -99,7 +120,7 @@ const getConversation = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT m.*, 
+      `SELECT m.*,
         json_build_object(
           'id', r.id,
           'sender_id', r.sender_id,
@@ -122,7 +143,17 @@ const getConversation = async (req, res) => {
           WHERE message_id = m.id
             AND user_id = $1
           LIMIT 1
-        ) AS my_reaction
+        ) AS my_reaction,
+        CASE
+          WHEN m.attachment_url IS NOT NULL THEN
+            json_build_object(
+              'url', m.attachment_url,
+              'fileType', m.attachment_type,
+              'originalName', m.attachment_name,
+              'size', m.attachment_size
+            )
+          ELSE NULL
+        END AS attachment
        FROM messages m
        LEFT JOIN messages r ON m.reply_to_id = r.id
        WHERE (m.sender_id = $1 AND m.receiver_id = $2)
