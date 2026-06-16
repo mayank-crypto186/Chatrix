@@ -155,8 +155,11 @@ const getConversation = async (req, res) => {
         END AS attachment
        FROM messages m
        LEFT JOIN messages r ON m.reply_to_id = r.id
-       WHERE (m.sender_id = $1 AND m.receiver_id = $2)
+       WHERE (
+         (m.sender_id = $1 AND m.receiver_id = $2)
          OR (m.sender_id = $2 AND m.receiver_id = $1)
+       )
+       AND NOT ($1 = ANY(COALESCE(m.deleted_for, '{}')))
        ORDER BY m.created_at ASC`,
       [userId, friendId]
     );
@@ -244,7 +247,7 @@ const toggleReaction = async (req, res) => {
   }
 };
 
-// ── Edit Message ─────────────────────────────────────────────────────────────
+// ── Edit Message ──────────────────────────────────────────────────────────────
 // Only the sender can edit their own message.
 const editMessage = async (req, res) => {
   try {
@@ -256,7 +259,6 @@ const editMessage = async (req, res) => {
       return res.status(400).json({ message: "Message text is required" });
     }
 
-    // Fetch the message first to verify ownership and get receiver_id for emit
     const messageResult = await pool.query(
       `SELECT * FROM messages WHERE id = $1`,
       [messageId]
@@ -286,7 +288,6 @@ const editMessage = async (req, res) => {
 
     const updated = result.rows[0];
 
-    // Emit real-time update to both parties
     const io = req.app.get("io");
     const payload = { messageId: updated.id, newText: updated.message };
 
@@ -304,9 +305,8 @@ const editMessage = async (req, res) => {
 };
 
 // ── Delete Message ────────────────────────────────────────────────────────────
-// scope "everyone" — nulls the message text and marks deleted_for_everyone (sender only).
-// scope "me"       — handled client-side only; we just return success so the
-//                    frontend can remove the message from its local state.
+// scope "everyone" — nulls text, sets deleted_for_everyone = true (sender only).
+// scope "me"       — appends userId to deleted_for array, persisted in DB.
 const deleteMessage = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -317,19 +317,28 @@ const deleteMessage = async (req, res) => {
       return res.status(400).json({ message: "scope must be 'me' or 'everyone'" });
     }
 
+    // Fetch the message first (needed for both scopes)
+    const messageResult = await pool.query(
+      `SELECT * FROM messages WHERE id = $1`,
+      [messageId]
+    );
+
+    if (!messageResult.rows.length) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const existing = messageResult.rows[0];
+
+    // Verify the user is part of this conversation
+    if (
+      String(existing.sender_id) !== String(userId) &&
+      String(existing.receiver_id) !== String(userId)
+    ) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
     if (scope === "everyone") {
-      // Fetch message to verify sender
-      const messageResult = await pool.query(
-        `SELECT * FROM messages WHERE id = $1`,
-        [messageId]
-      );
-
-      if (!messageResult.rows.length) {
-        return res.status(404).json({ message: "Message not found" });
-      }
-
-      const existing = messageResult.rows[0];
-
+      // Only the sender can delete for everyone
       if (String(existing.sender_id) !== String(userId)) {
         return res.status(403).json({ message: "Only the sender can delete a message for everyone" });
       }
@@ -341,7 +350,6 @@ const deleteMessage = async (req, res) => {
         [messageId]
       );
 
-      // Emit real-time delete to both parties
       const io = req.app.get("io");
       const payload = { messageId: Number(messageId), scope: "everyone" };
 
@@ -351,10 +359,20 @@ const deleteMessage = async (req, res) => {
       } catch (emitErr) {
         console.error("Emit error:", emitErr);
       }
+    } else {
+      // scope === "me" — persist userId into the deleted_for array
+      await pool.query(
+        `UPDATE messages
+         SET deleted_for = array_append(
+           COALESCE(deleted_for, '{}'),
+           $1
+         )
+         WHERE id = $2
+           AND NOT ($1 = ANY(COALESCE(deleted_for, '{}')))`,
+        [userId, messageId]
+      );
     }
 
-    // For scope "me": the frontend removes it from local state only.
-    // No DB change needed unless you want a deleted_for_users jsonb column.
     res.json({ success: true, scope });
   } catch (error) {
     res.status(500).json({ message: "Failed to delete message", error: error.message });
