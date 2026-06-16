@@ -15,3 +15,11 @@ export const getConversation = async (friendId) => {
 export const toggleReaction = async (messageId, emoji) => {
   return api.post(`/api/messages/${messageId}/reactions`, { emoji });
 };
+
+export const editMessage = async (messageId, newText) => {
+  return api.put(`/api/messages/${messageId}`, { message: newText });
+};
+
+export const deleteMessage = async (messageId, scope) => {
+  return api.delete(`/api/messages/${messageId}`, { data: { scope } });
+};

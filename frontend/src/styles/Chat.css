@@ -790,7 +790,7 @@
 }
 
 /* ===========================
-   ATTACHMENT — ADD TO BOTTOM OF Chat.css
+   ATTACHMENT
 =========================== */
 
 /* Paperclip button highlighted when file is selected */
@@ -1017,4 +1017,172 @@
   border-top-color: white;
   width: 16px;
   height: 16px;
+}
+
+/* ===========================
+   EDIT & DELETE
+=========================== */
+
+/* ── Options dropdown ── */
+.message-dropdown {
+  position: absolute;
+  top: 32px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 50;
+  min-width: 185px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Align dropdown to right for my messages, left for others */
+.dropdown-me {
+  right: 0;
+}
+
+.dropdown-other {
+  left: 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: var(--accent);
+}
+
+.dropdown-item-danger {
+  color: #ef4444;
+}
+
+.dropdown-item-danger:hover {
+  background: #fff1f1;
+  color: #dc2626;
+}
+
+/* ── Inline edit input ── */
+.edit-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.edit-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 5px 10px;
+  font-size: 14px;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+
+.edit-input:focus {
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Edit input inside other-bubble (white background) */
+.other-bubble .edit-input {
+  background: #f1f5f9;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.other-bubble .edit-input:focus {
+  border-color: var(--accent-dark);
+}
+
+.edit-save-btn {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.edit-save-btn:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.other-bubble .edit-save-btn {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.other-bubble .edit-save-btn:hover {
+  background: var(--accent-dark);
+}
+
+.edit-cancel-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.edit-cancel-btn:hover {
+  color: #ffffff;
+}
+
+.other-bubble .edit-cancel-btn {
+  color: var(--muted);
+}
+
+.other-bubble .edit-cancel-btn:hover {
+  color: #ef4444;
+}
+
+/* ── Deleted message state ── */
+.deleted-bubble {
+  opacity: 0.65;
+}
+
+.deleted-text {
+  font-style: italic;
+  color: var(--muted) !important;
+  font-size: 13.5px;
+}
+
+.me-bubble .deleted-text {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* ── Edited label ── */
+.edited-label {
+  font-size: 10.5px;
+  opacity: 0.65;
+  font-style: italic;
+  margin-left: 2px;
 }

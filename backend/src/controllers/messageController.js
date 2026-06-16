@@ -17,7 +17,6 @@ const sendMessage = async (req, res) => {
     const { receiverId } = req.params;
     const { message, replyToId, attachment } = req.body;
 
-    // Allow sending if there's either a text message OR an attachment
     const hasText = message && message.trim();
     const hasAttachment = attachment && attachment.url;
 
@@ -245,4 +244,121 @@ const toggleReaction = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage, getConversation, toggleReaction };
+// ── Edit Message ─────────────────────────────────────────────────────────────
+// Only the sender can edit their own message.
+const editMessage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Message text is required" });
+    }
+
+    // Fetch the message first to verify ownership and get receiver_id for emit
+    const messageResult = await pool.query(
+      `SELECT * FROM messages WHERE id = $1`,
+      [messageId]
+    );
+
+    if (!messageResult.rows.length) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    const existing = messageResult.rows[0];
+
+    if (String(existing.sender_id) !== String(userId)) {
+      return res.status(403).json({ message: "You can only edit your own messages" });
+    }
+
+    if (existing.deleted_for_everyone) {
+      return res.status(400).json({ message: "Cannot edit a deleted message" });
+    }
+
+    const result = await pool.query(
+      `UPDATE messages
+       SET message = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [message.trim(), messageId]
+    );
+
+    const updated = result.rows[0];
+
+    // Emit real-time update to both parties
+    const io = req.app.get("io");
+    const payload = { messageId: updated.id, newText: updated.message };
+
+    try {
+      io.to(String(updated.receiver_id)).emit("messageEdited", payload);
+      io.to(String(updated.sender_id)).emit("messageEdited", payload);
+    } catch (emitErr) {
+      console.error("Emit error:", emitErr);
+    }
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to edit message", error: error.message });
+  }
+};
+
+// ── Delete Message ────────────────────────────────────────────────────────────
+// scope "everyone" — nulls the message text and marks deleted_for_everyone (sender only).
+// scope "me"       — handled client-side only; we just return success so the
+//                    frontend can remove the message from its local state.
+const deleteMessage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { messageId } = req.params;
+    const { scope } = req.body; // "me" | "everyone"
+
+    if (!scope || !["me", "everyone"].includes(scope)) {
+      return res.status(400).json({ message: "scope must be 'me' or 'everyone'" });
+    }
+
+    if (scope === "everyone") {
+      // Fetch message to verify sender
+      const messageResult = await pool.query(
+        `SELECT * FROM messages WHERE id = $1`,
+        [messageId]
+      );
+
+      if (!messageResult.rows.length) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      const existing = messageResult.rows[0];
+
+      if (String(existing.sender_id) !== String(userId)) {
+        return res.status(403).json({ message: "Only the sender can delete a message for everyone" });
+      }
+
+      await pool.query(
+        `UPDATE messages
+         SET message = NULL, deleted_for_everyone = TRUE, updated_at = NOW()
+         WHERE id = $1`,
+        [messageId]
+      );
+
+      // Emit real-time delete to both parties
+      const io = req.app.get("io");
+      const payload = { messageId: Number(messageId), scope: "everyone" };
+
+      try {
+        io.to(String(existing.receiver_id)).emit("messageDeleted", payload);
+        io.to(String(existing.sender_id)).emit("messageDeleted", payload);
+      } catch (emitErr) {
+        console.error("Emit error:", emitErr);
+      }
+    }
+
+    // For scope "me": the frontend removes it from local state only.
+    // No DB change needed unless you want a deleted_for_users jsonb column.
+    res.json({ success: true, scope });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to delete message", error: error.message });
+  }
+};
+
+module.exports = { sendMessage, getConversation, toggleReaction, editMessage, deleteMessage };

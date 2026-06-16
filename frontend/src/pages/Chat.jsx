@@ -14,10 +14,18 @@ import {
   FileText,
   Download,
   Image as ImageIcon,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "../styles/Chat.css";
-import { getConversation, sendMessage, toggleReaction } from "../api/messageApi";
+import {
+  getConversation,
+  sendMessage,
+  toggleReaction,
+  editMessage,
+  deleteMessage,
+} from "../api/messageApi";
 import { getFriends } from "../api/friendApi";
 import { uploadAttachment } from "../api/uploadApi";
 
@@ -40,8 +48,12 @@ function Chat() {
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [openActionId, setOpenActionId] = useState(null);
 
+  // Edit state
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+
   // Attachment state
-  const [attachmentPreview, setAttachmentPreview] = useState(null); // { file, url, fileType }
+  const [attachmentPreview, setAttachmentPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -191,6 +203,30 @@ function Chat() {
       );
     });
 
+    // Real-time edit: update message text for both sender and receiver
+    socket.on("messageEdited", ({ messageId, newText }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m.id) === String(messageId)
+            ? { ...m, text: newText, edited: true }
+            : m
+        )
+      );
+    });
+
+    // Real-time delete: mark as deleted for everyone
+    socket.on("messageDeleted", ({ messageId, scope }) => {
+      if (scope === "everyone") {
+        setMessages((prev) =>
+          prev.map((m) =>
+            String(m.id) === String(messageId)
+              ? { ...m, text: null, deleted: true, attachment: null }
+              : m
+          )
+        );
+      }
+    });
+
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       socket.disconnect();
@@ -253,6 +289,8 @@ function Chat() {
           reactions: groupReactions(message.reactions || []),
           myReaction: message.my_reaction || null,
           attachment: message.attachment || null,
+          edited: !!message.updated_at,
+          deleted: !!message.deleted_for_everyone,
         }));
 
         setMessages(formattedMessages);
@@ -306,7 +344,6 @@ function Chat() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset input so the same file can be re-selected
     e.target.value = "";
 
     const isImage = file.type.startsWith("image/");
@@ -334,7 +371,7 @@ function Chat() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // ── Send (text + optional attachment) ────────────────────────
+  // ── Send ────────────────────────────────────────────────────
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -361,7 +398,6 @@ function Chat() {
     const messageToSend = hasText ? messageText.trim() : null;
     const tempId = `temp-${Date.now()}`;
 
-    // Optimistic UI — show message immediately with local preview
     const optimisticMsg = {
       id: tempId,
       sender: "me",
@@ -390,7 +426,6 @@ function Chat() {
     let uploadedAttachment = null;
 
     try {
-      // Upload file first if there's an attachment
       if (hasAttachment) {
         setUploading(true);
         const uploadRes = await uploadAttachment(attachmentPreview.file);
@@ -398,7 +433,6 @@ function Chat() {
         setUploading(false);
       }
 
-      // Send the message with or without attachment
       const response = await sendMessage(
         activeFriend.id,
         messageToSend,
@@ -431,7 +465,6 @@ function Chat() {
       clearAttachment();
     } catch (err) {
       setUploading(false);
-      // Remove optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setError(err.response?.data?.message || "Failed to send message.");
     }
@@ -472,6 +505,61 @@ function Chat() {
     }
   };
 
+  // ── Edit handlers ────────────────────────────────────────────
+
+  const handleEditStart = (msg) => {
+    setEditingMessageId(msg.id);
+    setEditingText(msg.text || "");
+    setOpenActionId(null);
+  };
+
+  const handleEditSave = async (messageId) => {
+    if (!editingText.trim()) return;
+    try {
+      await editMessage(messageId, editingText.trim());
+      setMessages((prev) =>
+        prev.map((m) =>
+          String(m.id) === String(messageId)
+            ? { ...m, text: editingText.trim(), edited: true }
+            : m
+        )
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to edit message.");
+    }
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  const handleEditCancel = () => {
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  // ── Delete handler ───────────────────────────────────────────
+
+  const handleDelete = async (messageId, scope) => {
+    try {
+      await deleteMessage(messageId, scope);
+      if (scope === "everyone") {
+        // Mark deleted in place — both parties see "This message was deleted"
+        setMessages((prev) =>
+          prev.map((m) =>
+            String(m.id) === String(messageId)
+              ? { ...m, text: null, deleted: true, attachment: null }
+              : m
+          )
+        );
+      } else {
+        // "Delete for me" — remove from local state only
+        setMessages((prev) => prev.filter((m) => String(m.id) !== String(messageId)));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete message.");
+    }
+    setOpenActionId(null);
+  };
+
   const renderStatus = (isOnline) => (isOnline ? "Online" : "Offline");
 
   const shouldShowTimestamp = (messages, index) => {
@@ -479,7 +567,7 @@ function Chat() {
     return messages[index].time !== messages[index - 1].time;
   };
 
-  // ── Attachment renderer (inside message bubble) ───────────────
+  // ── Attachment renderer ───────────────────────────────────────
 
   const renderAttachment = (attachment, isMe) => {
     if (!attachment) return null;
@@ -502,7 +590,6 @@ function Chat() {
       );
     }
 
-    // Generic file attachment
     return (
       <a
         href={attachment.isUploading ? undefined : attachment.url}
@@ -674,6 +761,7 @@ function Chat() {
               const isOpen = String(openActionId) === String(msg.id);
               const showActions = isHovered || isOpen;
               const showTimestamp = shouldShowTimestamp(messages, index);
+              const isEditing = String(editingMessageId) === String(msg.id);
 
               const toolbarStyle = {
                 position: "absolute",
@@ -706,49 +794,91 @@ function Chat() {
                     style={{ position: "relative" }}
                   >
                     <div className="message-inner" style={{ position: "relative" }}>
-                      {/* Reaction + reply toolbar */}
-                      <div
-                        className="message-actions"
-                        style={toolbarStyle}
-                        aria-hidden={!showActions}
-                      >
-                        {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            className={`reaction-btn ${
-                              msg.myReaction === emoji ? "active" : ""
-                            }`}
-                            onClick={() => handleReaction(msg.id, emoji)}
-                            aria-label={`React with ${emoji}`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        <div className="action-divider" />
-                        <button
-                          type="button"
-                          className="reply-action"
-                          onClick={() => handleReply(msg)}
+                      {/* Reaction + reply toolbar — hidden for deleted messages */}
+                      {!msg.deleted && (
+                        <div
+                          className="message-actions"
+                          style={toolbarStyle}
+                          aria-hidden={!showActions}
                         >
-                          Reply
-                        </button>
-                      </div>
+                          {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              className={`reaction-btn ${
+                                msg.myReaction === emoji ? "active" : ""
+                              }`}
+                              onClick={() => handleReaction(msg.id, emoji)}
+                              aria-label={`React with ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                          <div className="action-divider" />
+                          <button
+                            type="button"
+                            className="reply-action"
+                            onClick={() => handleReply(msg)}
+                          >
+                            Reply
+                          </button>
+                        </div>
+                      )}
 
                       {/* Bubble */}
                       <div
-                        className={`message-bubble ${isMe ? "me-bubble" : "other-bubble"}`}
+                        className={`message-bubble ${isMe ? "me-bubble" : "other-bubble"} ${msg.deleted ? "deleted-bubble" : ""}`}
                       >
-                        <button
-                          className="message-options"
-                          type="button"
-                          onClick={() =>
-                            setOpenActionId(isOpen ? null : msg.id)
-                          }
-                          aria-label="Options"
-                        >
-                          <MoreVertical size={14} />
-                        </button>
+                        {/* Three-dot options button */}
+                        {!msg.deleted && !isEditing && (
+                          <button
+                            className="message-options"
+                            type="button"
+                            onClick={() => setOpenActionId(isOpen ? null : msg.id)}
+                            aria-label="Options"
+                          >
+                            <MoreVertical size={14} />
+                          </button>
+                        )}
+
+                        {/* ── Dropdown menu ── */}
+                        {isOpen && !msg.deleted && (
+                          <div className={`message-dropdown ${isMe ? "dropdown-me" : "dropdown-other"}`}>
+                            {/* Edit — only sender, only text messages */}
+                            {isMe && msg.text && (
+                              <button
+                                type="button"
+                                className="dropdown-item"
+                                onClick={() => handleEditStart(msg)}
+                              >
+                                <Pencil size={13} />
+                                Edit
+                              </button>
+                            )}
+
+                            {/* Delete for me — anyone */}
+                            <button
+                              type="button"
+                              className="dropdown-item"
+                              onClick={() => handleDelete(msg.id, "me")}
+                            >
+                              <Trash2 size={13} />
+                              Delete for me
+                            </button>
+
+                            {/* Delete for everyone — sender only */}
+                            {isMe && (
+                              <button
+                                type="button"
+                                className="dropdown-item dropdown-item-danger"
+                                onClick={() => handleDelete(msg.id, "everyone")}
+                              >
+                                <Trash2 size={13} />
+                                Delete for everyone
+                              </button>
+                            )}
+                          </div>
+                        )}
 
                         {/* Reply preview */}
                         {msg.replyToMessage && (
@@ -766,12 +896,50 @@ function Chat() {
                           </div>
                         )}
 
-                        {/* Attachment */}
-                        {msg.attachment && renderAttachment(msg.attachment, isMe)}
+                        {/* Attachment — hidden when deleted */}
+                        {!msg.deleted && msg.attachment && renderAttachment(msg.attachment, isMe)}
 
-                        {/* Text */}
-                        {msg.text && (
-                          <div className="message-text">{msg.text}</div>
+                        {/* Message body — deleted / editing / normal */}
+                        {msg.deleted ? (
+                          <div className="message-text deleted-text">
+                            🚫 This message was deleted
+                          </div>
+                        ) : isEditing ? (
+                          <div className="edit-input-wrapper">
+                            <input
+                              className="edit-input"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleEditSave(msg.id);
+                                if (e.key === "Escape") handleEditCancel();
+                              }}
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              className="edit-save-btn"
+                              onClick={() => handleEditSave(msg.id)}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="edit-cancel-btn"
+                              onClick={handleEditCancel}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          msg.text && (
+                            <div className="message-text">
+                              {msg.text}
+                              {msg.edited && (
+                                <span className="edited-label"> (edited)</span>
+                              )}
+                            </div>
+                          )
                         )}
 
                         <div className="message-meta">
@@ -780,7 +948,7 @@ function Chat() {
                         </div>
 
                         {/* Reaction pills */}
-                        {msg.reactions && msg.reactions.length > 0 && (
+                        {!msg.deleted && msg.reactions && msg.reactions.length > 0 && (
                           <div className="reaction-summary">
                             {msg.reactions.map((reaction) => (
                               <span
