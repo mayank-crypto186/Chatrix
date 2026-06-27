@@ -1,0 +1,548 @@
+/* ===========================
+   HOME PAGE — matches Dashboard theme
+=========================== */
+
+.home-page {
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 260px 1fr 260px;
+  gap: 14px;
+  padding: 14px;
+  box-sizing: border-box;
+  color: white;
+  background:
+    linear-gradient(rgba(10, 25, 80, 0.65), rgba(10, 15, 40, 0.9)),
+    url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+}
+
+/* ===========================
+   SIDEBAR — identical to Dashboard
+=========================== */
+
+.home-page .sidebar {
+  background: rgba(30, 70, 150, 0.35);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  height: calc(100vh - 28px);
+  padding: 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.home-page .brand {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 18px;
+}
+
+.home-page .profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-bottom: 18px;
+  transition: all 0.25s ease;
+}
+
+.home-page .profile-card:hover {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+}
+
+.home-page .profile-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.home-page .profile-card h3,
+.home-page .profile-card p {
+  margin: 0;
+}
+
+.home-page nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-page nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.home-page nav a:hover,
+.home-page nav a.active {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateX(4px);
+}
+
+.nav-badge {
+  background: #ef4444;
+  color: white;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  margin-left: auto;
+}
+
+/* ===========================
+   MAIN CONTENT
+=========================== */
+
+.home-main {
+  height: calc(100vh - 28px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.home-main::-webkit-scrollbar {
+  width: 5px;
+}
+
+.home-main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+}
+
+.home-loading,
+.home-error,
+.home-empty {
+  text-align: center;
+  padding: 32px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+}
+
+.home-error {
+  color: #fca5a5;
+}
+
+/* ===========================
+   PROFILE HERO CARD
+=========================== */
+
+.profile-hero {
+  background: rgba(30, 70, 150, 0.35);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* Gradient banner */
+.hero-banner {
+  height: 110px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f97316 100%);
+}
+
+/* Body below banner */
+.hero-body {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  padding: 0 24px 20px;
+  margin-top: -44px;
+  position: relative;
+}
+
+.hero-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hero-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(30, 70, 150, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.hero-status-dot {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid rgba(20, 50, 120, 0.9);
+}
+
+.hero-status-dot.online {
+  background: #22c55e;
+}
+
+.hero-info {
+  flex: 1;
+  padding-top: 48px;
+}
+
+.hero-name {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.hero-username {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.hero-bio {
+  margin: 0;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.edit-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-end;
+  white-space: nowrap;
+}
+
+.edit-profile-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.04);
+}
+
+/* Stats Row */
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  gap: 4px;
+  transition: background 0.2s;
+}
+
+.stat-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.stat-card.purple .stat-value { color: #c4b5fd; }
+.stat-card.blue   .stat-value { color: #93c5fd; }
+.stat-card.pink   .stat-value { color: #f9a8d4; }
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ===========================
+   SECTION BASE
+=========================== */
+
+.home-section {
+  background: rgba(30, 70, 150, 0.35);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  padding: 20px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.online-count {
+  font-size: 13px;
+  color: #86efac;
+  font-weight: 700;
+  background: rgba(34, 197, 94, 0.15);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+/* ===========================
+   MOOD SETTER
+=========================== */
+
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.mood-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-2px);
+}
+
+.mood-btn.active {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.22);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.mood-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.mood-label {
+  font-size: 12px;
+  text-align: center;
+}
+
+.mood-saving {
+  font-size: 13px;
+  color: #fde68a;
+  font-weight: 600;
+}
+
+.mood-saved {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: #86efac;
+  font-weight: 700;
+}
+
+/* ===========================
+   ACTIVE FRIENDS ROW
+=========================== */
+
+.active-friends-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.active-friends-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.active-friends-row::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.active-friend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.active-friend:hover {
+  transform: translateY(-3px);
+}
+
+.active-avatar-wrap {
+  position: relative;
+}
+
+.active-avatar-wrap img {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(96, 165, 250, 0.5);
+}
+
+.active-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid rgba(20, 50, 120, 0.9);
+}
+
+.active-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ===========================
+   RIGHT PANEL
+=========================== */
+
+.home-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: calc(100vh - 28px);
+  overflow-y: auto;
+}
+
+.home-right::-webkit-scrollbar {
+  width: 5px;
+}
+
+.home-right::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.home-right .widget {
+  background: rgba(30, 70, 150, 0.35);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  padding: 16px;
+}
+
+.home-right .widget h2 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.info-row:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.info-row strong {
+  color: #93c5fd;
+}
+
+.mood-widget-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mood-widget-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mood-widget-item.active {
+  background: rgba(96, 165, 250, 0.22);
+  border-left: 3px solid #60a5fa;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+
+@media (max-width: 1000px) {
+  .home-page {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .home-page .sidebar,
+  .home-main,
+  .home-right {
+    height: auto;
+  }
+
+  .home-right {
+    display: none;
+  }
+
+  .mood-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

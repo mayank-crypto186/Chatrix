@@ -4,6 +4,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import Chat from "./pages/Chat";
+import HomePage from "./pages/Home";
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -27,7 +28,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Protected Route */}
+        {/* Protected Routes */}
         <Route
           path="/dashboard"
           element={
@@ -37,18 +38,26 @@ function App() {
           }
         />
         <Route
-  path="/chat/:friendId"
-  element={
-    <ProtectedRoute>
-      <Chat />
-    </ProtectedRoute>
-  }
-/>
+          path="/chat/:friendId"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Unknown route redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
-
   );
 }
 

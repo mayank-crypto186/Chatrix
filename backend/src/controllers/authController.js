@@ -129,4 +129,46 @@ const logout = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, logout };
+// GET /api/auth/me — returns full profile of logged-in user
+const getMe = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, username, email, bio, mood_status, is_online, created_at
+       FROM users WHERE id = $1`,
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("getMe error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// PATCH /api/auth/status — updates mood status
+const updateStatus = async (req, res) => {
+  const { mood_status } = req.body;
+  const allowed = ["Free to Chat", "Busy", "Studying", "Gaming"];
+
+  if (!allowed.includes(mood_status)) {
+    return res.status(400).json({ message: "Invalid status value" });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE users SET mood_status = $1 WHERE id = $2`,
+      [mood_status, req.user.id]
+    );
+
+    res.json({ message: "Status updated successfully", mood_status });
+  } catch (error) {
+    console.error("updateStatus error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+module.exports = { signup, login, logout, getMe, updateStatus };
