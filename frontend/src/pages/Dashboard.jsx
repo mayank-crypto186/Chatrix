@@ -146,7 +146,7 @@ function Dashboard() {
         </div>
 
         <nav>
-          <a>
+          <a onClick={() => navigate("/home")}>
             <Home /> Home
           </a>
 
