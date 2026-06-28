@@ -48,6 +48,9 @@ function Chat() {
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [openActionId, setOpenActionId] = useState(null);
 
+  // Profile drawer
+  const [showProfile, setShowProfile] = useState(false);
+
   // Edit state
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState("");
@@ -714,7 +717,11 @@ function Chat() {
               )}
             </div>
 
-            <div>
+            <div
+              className={activeFriend ? "chat-user-title-info clickable" : "chat-user-title-info"}
+              onClick={() => activeFriend && setShowProfile(true)}
+              title={activeFriend ? "View profile" : ""}
+            >
               <h3>{activeFriend?.name || "Select a chat"}</h3>
               <p>
                 {activeFriend
@@ -1090,6 +1097,58 @@ function Chat() {
           </form>
         </div>
       </main>
+
+      {/* ── FRIEND PROFILE DRAWER ── */}
+      {showProfile && activeFriend && (
+        <>
+          <div className="profile-drawer-overlay" onClick={() => setShowProfile(false)} />
+          <aside className="profile-drawer">
+            <button
+              className="profile-drawer-close"
+              onClick={() => setShowProfile(false)}
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="profile-drawer-banner" />
+
+            <div className="profile-drawer-body">
+              <div className="profile-drawer-avatar-wrap">
+                <img
+                  src={activeFriend.avatar || `https://i.pravatar.cc/150?img=${activeFriend.id}`}
+                  alt={activeFriend.name}
+                  className="profile-drawer-avatar"
+                />
+                <span className={`profile-drawer-dot ${activeFriend.is_online ? "online" : "offline"}`} />
+              </div>
+
+              <h2 className="profile-drawer-name">{activeFriend.name}</h2>
+              <p className="profile-drawer-username">@{activeFriend.username}</p>
+
+              <span className={`profile-drawer-status-pill ${activeFriend.is_online ? "online" : "offline"}`}>
+                {activeFriend.is_online ? "🟢 Online" : "⚫ Offline"}
+              </span>
+
+              {activeFriend.bio && (
+                <div className="profile-drawer-bio-section">
+                  <p className="profile-drawer-bio-label">Bio</p>
+                  <p className="profile-drawer-bio">{activeFriend.bio}</p>
+                </div>
+              )}
+
+              <div className="profile-drawer-divider" />
+
+              <button
+                className="profile-drawer-msg-btn"
+                onClick={() => setShowProfile(false)}
+              >
+                💬 Send Message
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }
