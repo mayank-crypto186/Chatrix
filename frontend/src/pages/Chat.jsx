@@ -26,7 +26,7 @@ import {
   editMessage,
   deleteMessage,
 } from "../api/messageApi";
-import { getFriends } from "../api/friendApi";
+import { getFriends, getFriendProfile } from "../api/friendApi";
 import { uploadAttachment } from "../api/uploadApi";
 
 function Chat() {
@@ -50,6 +50,8 @@ function Chat() {
 
   // Profile drawer
   const [showProfile, setShowProfile] = useState(false);
+  const [friendProfile, setFriendProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Edit state
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -565,6 +567,22 @@ function Chat() {
 
   const renderStatus = (isOnline) => (isOnline ? "Online" : "Offline");
 
+  const openProfileDrawer = async () => {
+    setShowProfile(true);
+    setFriendProfile(null);
+    if (!activeFriend) return;
+    setProfileLoading(true);
+    try {
+      const res = await getFriendProfile(activeFriend.id);
+      setFriendProfile(res.data);
+    } catch {
+      // Fallback: use whatever is already in activeFriend
+      setFriendProfile(activeFriend);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   const shouldShowTimestamp = (messages, index) => {
     if (index === 0) return true;
     return messages[index].time !== messages[index - 1].time;
@@ -719,7 +737,7 @@ function Chat() {
 
             <div
               className={activeFriend ? "chat-user-title-info clickable" : "chat-user-title-info"}
-              onClick={() => activeFriend && setShowProfile(true)}
+              onClick={() => activeFriend && openProfileDrawer()}
               title={activeFriend ? "View profile" : ""}
             >
               <h3>{activeFriend?.name || "Select a chat"}</h3>
@@ -1114,37 +1132,81 @@ function Chat() {
             <div className="profile-drawer-banner" />
 
             <div className="profile-drawer-body">
-              <div className="profile-drawer-avatar-wrap">
-                <img
-                  src={activeFriend.avatar || `https://i.pravatar.cc/150?img=${activeFriend.id}`}
-                  alt={activeFriend.name}
-                  className="profile-drawer-avatar"
-                />
-                <span className={`profile-drawer-dot ${activeFriend.is_online ? "online" : "offline"}`} />
-              </div>
-
-              <h2 className="profile-drawer-name">{activeFriend.name}</h2>
-              <p className="profile-drawer-username">@{activeFriend.username}</p>
-
-              <span className={`profile-drawer-status-pill ${activeFriend.is_online ? "online" : "offline"}`}>
-                {activeFriend.is_online ? "🟢 Online" : "⚫ Offline"}
-              </span>
-
-              {activeFriend.bio && (
-                <div className="profile-drawer-bio-section">
-                  <p className="profile-drawer-bio-label">Bio</p>
-                  <p className="profile-drawer-bio">{activeFriend.bio}</p>
+              {profileLoading ? (
+                <div className="profile-drawer-loading">
+                  <div className="upload-spinner" />
+                  <p>Loading profile…</p>
                 </div>
+              ) : (
+                <>
+                  <div className="profile-drawer-avatar-wrap">
+                    <img
+                      src={
+                        (friendProfile || activeFriend).avatar ||
+                        `https://i.pravatar.cc/150?img=${activeFriend.id}`
+                      }
+                      alt={activeFriend.name}
+                      className="profile-drawer-avatar"
+                    />
+                    <span className={`profile-drawer-dot ${activeFriend.is_online ? "online" : "offline"}`} />
+                  </div>
+
+                  <h2 className="profile-drawer-name">{activeFriend.name}</h2>
+                  <p className="profile-drawer-username">@{activeFriend.username}</p>
+
+                  <span className={`profile-drawer-status-pill ${activeFriend.is_online ? "online" : "offline"}`}>
+                    {activeFriend.is_online ? "🟢 Online" : "⚫ Offline"}
+                  </span>
+
+                  {/* Bio */}
+                  {(friendProfile?.bio || activeFriend.bio) && (
+                    <div className="profile-drawer-section">
+                      <p className="profile-drawer-section-label">Bio</p>
+                      <p className="profile-drawer-bio">
+                        {friendProfile?.bio || activeFriend.bio}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Current Mood / Status */}
+                  {(friendProfile?.mood || friendProfile?.status || activeFriend.mood || activeFriend.status) && (
+                    <div className="profile-drawer-section">
+                      <p className="profile-drawer-section-label">Current Mood</p>
+                      <div className="profile-drawer-mood">
+                        {(() => {
+                          const mood = friendProfile?.mood || friendProfile?.status || activeFriend.mood || activeFriend.status;
+                          const moodMap = {
+                            "Free to Chat": "🟢",
+                            "free_to_chat": "🟢",
+                            "Studying": "📚",
+                            "studying": "📚",
+                            "Gaming": "🎮",
+                            "gaming": "🎮",
+                            "Busy": "🔴",
+                            "busy": "🔴",
+                          };
+                          const emoji = moodMap[mood] || "💬";
+                          const label = mood.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                          return (
+                            <span className="profile-drawer-mood-pill">
+                              {emoji} {label}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="profile-drawer-divider" />
+
+                  <button
+                    className="profile-drawer-msg-btn"
+                    onClick={() => setShowProfile(false)}
+                  >
+                    💬 Send Message
+                  </button>
+                </>
               )}
-
-              <div className="profile-drawer-divider" />
-
-              <button
-                className="profile-drawer-msg-btn"
-                onClick={() => setShowProfile(false)}
-              >
-                💬 Send Message
-              </button>
             </div>
           </aside>
         </>

@@ -35,3 +35,7 @@ export const rejectFriendRequest = (requestId) => {
 export const getFriends = () => {
   return axios.get(`${API}/friends`, getConfig());
 };
+
+export const getFriendProfile = (friendId) => {
+  return axios.get(`${API}/profile/${friendId}`, getConfig());
+};

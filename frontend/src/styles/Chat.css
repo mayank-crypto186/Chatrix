@@ -1255,6 +1255,51 @@
   margin: 0;
 }
 
+/* Generic section block (bio, mood) */
+.profile-drawer-section {
+  width: 100%;
+  background: #f8faff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e8f0fe;
+}
+
+.profile-drawer-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+}
+
+.profile-drawer-section .profile-drawer-bio {
+  margin: 0;
+}
+
+/* Mood pill */
+.profile-drawer-mood-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Loading state */
+.profile-drawer-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 /* Info row (joined date etc) */
 .profile-drawer-info-row {
   width: 100%;
