@@ -8,6 +8,7 @@ const {
   acceptRequest,
   rejectRequest,
   getFriends,
+  getFriendProfile,
 } = require("../controllers/friendController");
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.get("/requests", authMiddleware, getRequests);
 router.post("/accept/:requestId", authMiddleware, acceptRequest);
 router.delete("/reject/:requestId", authMiddleware, rejectRequest);
 router.get("/friends", authMiddleware, getFriends);
+router.get("/profile/:friendId", authMiddleware, getFriendProfile);
 
 module.exports = router;

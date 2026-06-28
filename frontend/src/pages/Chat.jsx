@@ -1169,12 +1169,12 @@ function Chat() {
                   )}
 
                   {/* Current Mood / Status */}
-                  {(friendProfile?.mood || friendProfile?.status || activeFriend.mood || activeFriend.status) && (
+                  {(friendProfile.mood_status || friendProfile?.status || activeFriend.mood || activeFriend.status) && (
                     <div className="profile-drawer-section">
                       <p className="profile-drawer-section-label">Current Mood</p>
                       <div className="profile-drawer-mood">
                         {(() => {
-                          const mood = friendProfile?.mood || friendProfile?.status || activeFriend.mood || activeFriend.status;
+                          const mood = friendProfile?.mood_status || friendProfile?.status || activeFriend.mood || activeFriend.status;
                           const moodMap = {
                             "Free to Chat": "🟢",
                             "free_to_chat": "🟢",

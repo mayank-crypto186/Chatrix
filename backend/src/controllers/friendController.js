@@ -157,6 +157,35 @@ const getFriends = async (req, res) => {
     res.status(500).json({ message: "Failed to load friends", error: error.message });
   }
 };
+const getFriendProfile = async (req, res) => {
+  const { friendId } = req.params;
+  const currentUserId = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.username, u.avatar, u.bio, u.mood_status, u.is_online
+       FROM users u
+       INNER JOIN friends f
+         ON (
+           (f.user_id = $1 AND f.friend_id = $2)
+           OR (f.user_id = $2 AND f.friend_id = $1)
+         )
+         AND f.status = 'accepted'
+       WHERE u.id = $2`,
+      [currentUserId, friendId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Friend not found." });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("getFriendProfile error:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+};
+
 
 module.exports = {
   searchUsers,
@@ -165,4 +194,5 @@ module.exports = {
   acceptRequest,
   rejectRequest,
   getFriends,
+  getFriendProfile,
 };
