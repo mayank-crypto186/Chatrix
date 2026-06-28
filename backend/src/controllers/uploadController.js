@@ -1,5 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
+const pool = require("../config/db");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -7,12 +8,16 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-console.log("Cloudinary config check:", {
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "MISSING",
-  api_key: process.env.CLOUDINARY_API_KEY ? "SET" : "MISSING",
-  api_secret: process.env.CLOUDINARY_API_SECRET ? "SET" : "MISSING",
-});
+const streamUploadToCloudinary = (fileBuffer, options) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  });
 
+// POST /api/upload — general file/attachment upload
 const uploadFile = async (req, res) => {
   try {
     if (!req.file) {
@@ -27,24 +32,12 @@ const uploadFile = async (req, res) => {
     if (isImage) resourceType = "image";
     if (isVideo) resourceType = "video";
 
-    const streamUpload = () =>
-      new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            resource_type: resourceType,
-            folder: "chatrix_attachments",
-            use_filename: true,
-            unique_filename: true,
-          },
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
-          }
-        );
-        streamifier.createReadStream(file.buffer).pipe(stream);
-      });
-
-    const result = await streamUpload();
+    const result = await streamUploadToCloudinary(file.buffer, {
+      resource_type: resourceType,
+      folder: "chatrix_attachments",
+      use_filename: true,
+      unique_filename: true,
+    });
 
     res.json({
       url: result.secure_url,
@@ -61,4 +54,68 @@ const uploadFile = async (req, res) => {
   }
 };
 
-module.exports = { uploadFile };
+// POST /api/upload/avatar — upload profile picture + save URL to DB
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image provided" });
+    }
+
+    const file = req.file;
+
+    if (!file.mimetype.startsWith("image/")) {
+      return res.status(400).json({ message: "Only image files are allowed for avatar" });
+    }
+
+    const result = await streamUploadToCloudinary(file.buffer, {
+      resource_type: "image",
+      folder: "chatrix_avatars",
+      transformation: [{ width: 400, height: 400, crop: "fill", gravity: "face" }],
+      use_filename: true,
+      unique_filename: true,
+    });
+
+    await pool.query(
+      "UPDATE users SET avatar = $1 WHERE id = $2",
+      [result.secure_url, req.user.id]
+    );
+
+    res.json({
+      message: "Avatar updated successfully",
+      avatar: result.secure_url,
+    });
+  } catch (error) {
+    console.error("Avatar upload error:", error);
+    res.status(500).json({ message: "Avatar upload failed", error: error.message });
+  }
+};
+
+// PATCH /api/upload/profile — update name and bio
+const updateProfile = async (req, res) => {
+  const { name, bio } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ message: "Name is required" });
+  }
+
+  if (bio && bio.length > 160) {
+    return res.status(400).json({ message: "Bio must be under 160 characters" });
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE users SET name = $1, bio = $2 WHERE id = $3 RETURNING id, name, bio, avatar, username",
+      [name.trim(), bio?.trim() || null, req.user.id]
+    );
+
+    res.json({
+      message: "Profile updated successfully",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Profile update failed", error: error.message });
+  }
+};
+
+module.exports = { uploadFile, uploadAvatar, updateProfile };
