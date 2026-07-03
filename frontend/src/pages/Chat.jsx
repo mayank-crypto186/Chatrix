@@ -25,6 +25,7 @@ import {
   toggleReaction,
   editMessage,
   deleteMessage,
+  markAsRead,
 } from "../api/messageApi";
 import { getFriends, getFriendProfile } from "../api/friendApi";
 import { uploadAttachment } from "../api/uploadApi";
@@ -138,6 +139,7 @@ function Chat() {
                 minute: "2-digit",
               }),
               attachment: message.attachment || null,
+              status: message.status || "sent", // 👈 NEW
             };
             return newPrev;
           }
@@ -167,6 +169,7 @@ function Chat() {
           reactions: normalizeReactions(message.reactions || []),
           myReaction: message.my_reaction || null,
           attachment: message.attachment || null,
+          status: message.status || "sent", // 👈 NEW
         };
 
         return [...prev, incoming];
@@ -230,6 +233,28 @@ function Chat() {
           )
         );
       }
+    });
+
+    // 👈 NEW: my sent messages got delivered to the friend (they came online)
+    socket.on("messagesDelivered", ({ messageIds }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          messageIds.map(String).includes(String(m.id)) && m.status !== "read"
+            ? { ...m, status: "delivered" }
+            : m
+        )
+      );
+    });
+
+    // 👈 NEW: my sent messages were read by the friend
+    socket.on("messagesRead", ({ messageIds }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          messageIds.map(String).includes(String(m.id))
+            ? { ...m, status: "read" }
+            : m
+        )
+      );
     });
 
     return () => {
@@ -296,9 +321,13 @@ function Chat() {
           attachment: message.attachment || null,
           edited: !!message.updated_at,
           deleted: !!message.deleted_for_everyone,
+          status: message.status || "sent", // 👈 NEW
         }));
 
         setMessages(formattedMessages);
+
+        // 👈 NEW: tell backend we've now read this friend's messages
+        markAsRead(activeFriend.id).catch(() => {});
       } catch (err) {
         setError(err.response?.data?.message || "Could not load this conversation.");
         setMessages([]);
@@ -574,6 +603,7 @@ function Chat() {
     setProfileLoading(true);
     try {
       const res = await getFriendProfile(activeFriend.id);
+      console.log("getFriendProfile response:", res.data); // 👈 CHECK THIS IN BROWSER CONSOLE
       setFriendProfile(res.data);
     } catch {
       // Fallback: use whatever is already in activeFriend
@@ -969,7 +999,15 @@ function Chat() {
 
                         <div className="message-meta">
                           {msg.time}
-                          {isMe && <span className="read-ticks"> ✓✓</span>}
+                          {isMe && !msg.deleted && (
+                            <span
+                              className={`read-ticks ${
+                                msg.status === "read" ? "ticks-read" : ""
+                              }`}
+                            >
+                              {msg.status === "sent" ? " ✓" : " ✓✓"}
+                            </span>
+                          )}
                         </div>
 
                         {/* Reaction pills */}
@@ -1159,22 +1197,20 @@ function Chat() {
                   </span>
 
                   {/* Bio */}
-                  {(friendProfile?.bio || activeFriend.bio) && (
+                  {(friendProfile?.bio) ? (
                     <div className="profile-drawer-section">
                       <p className="profile-drawer-section-label">Bio</p>
-                      <p className="profile-drawer-bio">
-                        {friendProfile?.bio || activeFriend.bio}
-                      </p>
+                      <p className="profile-drawer-bio">{friendProfile.bio}</p>
                     </div>
-                  )}
+                  ) : null}
 
-                  {/* Current Mood / Status */}
-                  {(friendProfile.mood_status || friendProfile?.status || activeFriend.mood || activeFriend.status) && (
+                  {/* Current Mood — only show if a real mood value exists (not online status) */}
+                  {(friendProfile?.mood) ? (
                     <div className="profile-drawer-section">
                       <p className="profile-drawer-section-label">Current Mood</p>
                       <div className="profile-drawer-mood">
                         {(() => {
-                          const mood = friendProfile?.mood_status || friendProfile?.status || activeFriend.mood || activeFriend.status;
+                          const mood = friendProfile.mood;
                           const moodMap = {
                             "Free to Chat": "🟢",
                             "free_to_chat": "🟢",
@@ -1195,7 +1231,7 @@ function Chat() {
                         })()}
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="profile-drawer-divider" />
 

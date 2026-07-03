@@ -529,7 +529,15 @@
 
 .me-bubble .message-meta { color: rgba(255, 255, 255, 0.65); }
 
-.read-ticks { font-size: 11px; }
+.read-ticks {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65); /* default gray-ish on blue bubble */
+  letter-spacing: -1px;
+}
+
+.read-ticks.ticks-read {
+  color: #4fc3f7; /* WhatsApp-style blue when read */
+}
 
 /* ── Reaction pills ── */
 .reaction-summary {

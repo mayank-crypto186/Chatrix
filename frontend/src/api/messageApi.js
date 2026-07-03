@@ -23,3 +23,10 @@ export const editMessage = async (messageId, newText) => {
 export const deleteMessage = async (messageId, scope) => {
   return api.delete(`/api/messages/${messageId}`, { data: { scope } });
 };
+
+// ── Read Receipts ─────────────────────────────────────────────
+// Called when user opens a chat — marks all messages from
+// friendId as "read" and triggers blue ticks on sender's screen
+export const markAsRead = (friendId) => {
+  return api.put(`/api/messages/read/${friendId}`, {});
+};

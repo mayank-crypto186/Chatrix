@@ -97,6 +97,37 @@ io.on("connection", (socket) => {
 
     socket.join(String(payload.id));
 
+    // When user connects, flip any "sent" messages addressed to them → "delivered"
+    // and notify each original sender so their single tick becomes double tick
+    ;(async () => {
+      try {
+        const result = await pool.query(
+          `UPDATE messages
+           SET status = 'delivered'
+           WHERE receiver_id = $1
+             AND status = 'sent'
+           RETURNING id, sender_id`,
+          [payload.id]
+        );
+
+        // Group updated message ids by sender, notify each one
+        const bySender = {};
+        result.rows.forEach((row) => {
+          bySender[row.sender_id] = bySender[row.sender_id] || [];
+          bySender[row.sender_id].push(row.id);
+        });
+
+        Object.entries(bySender).forEach(([senderId, messageIds]) => {
+          io.to(String(senderId)).emit("messagesDelivered", {
+            deliveredTo: payload.id,
+            messageIds,
+          });
+        });
+      } catch (err) {
+        console.error("Error marking messages delivered on connect:", err);
+      }
+    })();
+
     io.emit("userOnline", {
       userId: payload.id,
     });

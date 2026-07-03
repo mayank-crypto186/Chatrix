@@ -43,9 +43,14 @@ const sendMessage = async (req, res) => {
       }
     }
 
+    // Set "delivered" immediately if receiver is currently online
+    const onlineUsers = req.app.get("onlineUsers");
+    const receiverIsOnline = onlineUsers?.has(String(receiverId));
+    const initialStatus = receiverIsOnline ? "delivered" : "sent";
+
     const result = await pool.query(
-      `INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, attachment_url, attachment_type, attachment_name, attachment_size)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO messages (sender_id, receiver_id, message, reply_to_id, attachment_url, attachment_type, attachment_name, attachment_size, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         senderId,
@@ -56,6 +61,7 @@ const sendMessage = async (req, res) => {
         hasAttachment ? attachment.fileType : null,
         hasAttachment ? attachment.originalName : null,
         hasAttachment ? attachment.size : null,
+        initialStatus,
       ]
     );
 
@@ -82,6 +88,7 @@ const sendMessage = async (req, res) => {
       reply_to: replyPayload,
       reactions: [],
       my_reaction: null,
+      status: newMessage.status,
       attachment: hasAttachment
         ? {
             url: newMessage.attachment_url,
@@ -379,4 +386,40 @@ const deleteMessage = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage, getConversation, toggleReaction, editMessage, deleteMessage };
+// ── Mark As Read ──────────────────────────────────────────────────────────────
+// Called when receiver opens the chat. Marks all unread messages from
+// friendId as "read" and emits "messagesRead" socket event to the sender
+// so their tick marks turn blue in real time.
+const markAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;       // the person now reading
+    const { friendId } = req.params;  // the person who sent the messages
+
+    const result = await pool.query(
+      `UPDATE messages
+       SET status = 'read'
+       WHERE sender_id = $1
+         AND receiver_id = $2
+         AND status != 'read'
+       RETURNING id`,
+      [friendId, userId]
+    );
+
+    const updatedIds = result.rows.map((r) => r.id);
+
+    if (updatedIds.length > 0) {
+      const io = req.app.get("io");
+      // Notify the original sender — their ticks turn blue
+      io.to(String(friendId)).emit("messagesRead", {
+        readBy: userId,
+        messageIds: updatedIds,
+      });
+    }
+
+    res.json({ success: true, updatedIds });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to mark as read", error: error.message });
+  }
+};
+
+module.exports = { sendMessage, getConversation, toggleReaction, editMessage, deleteMessage, markAsRead };
