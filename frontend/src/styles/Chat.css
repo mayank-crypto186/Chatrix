@@ -574,6 +574,7 @@
   border-top: 1px solid var(--border);
   padding: 12px 16px 14px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .reply-preview-bar {
@@ -1356,4 +1357,185 @@
 /* Mobile */
 @media (max-width: 768px) {
   .profile-drawer { width: 100vw; }
+}
+/* ===========================
+   VOICE MESSAGES
+=========================== */
+
+/* Mic button — same size as send button */
+.mic-btn {
+  background: var(--accent);
+  transition: background 0.2s, transform 0.15s;
+}
+
+.mic-btn:hover {
+  background: var(--accent-dark);
+  transform: scale(1.05);
+}
+
+.mic-btn.uploading {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* ── Voice bubble inside chat ── */
+.voice-message-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.voice-other {
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 0 16px 16px 16px;
+}
+
+.voice-me {
+  background: var(--accent);
+  border-radius: 16px 0 16px 16px;
+}
+
+.voice-play-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.voice-audio {
+  flex: 1;
+  height: 32px;
+  outline: none;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  min-width: 0;
+}
+
+/* Style the audio element for the blue bubble */
+.voice-me .voice-audio {
+  filter: invert(1) brightness(1.5);
+}
+
+.voice-duration {
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.voice-me .voice-duration {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.voice-uploading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+.voice-me .voice-uploading {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Recording overlay ── */
+.recording-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 2px solid #fee2e2;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 50;
+  box-shadow: 0 -4px 20px rgba(239, 68, 68, 0.12);
+  animation: slideUpIn 0.2s ease;
+}
+
+@keyframes slideUpIn {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Pulsing red dot */
+.recording-pulse {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(1.4); opacity: 0.6; }
+}
+
+.recording-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ef4444;
+  flex: 1;
+}
+
+.recording-timer {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 44px;
+  text-align: right;
+}
+
+.recording-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recording-cancel-btn {
+  border: none;
+  background: #f1f5f9;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.recording-cancel-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.recording-stop-btn {
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.recording-stop-btn:hover {
+  background: var(--accent-dark);
+  transform: scale(1.03);
 }

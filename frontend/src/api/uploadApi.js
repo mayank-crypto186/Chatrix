@@ -29,3 +29,14 @@ export const updateProfile = async ({ name, bio }) => {
   const response = await api.patch("/api/upload/profile", { name, bio });
   return response;
 };
+// Voice message upload
+export const uploadVoiceMessage = async (blob) => {
+  const formData = new FormData();
+  formData.append("voice", blob, "voice_message.webm");
+
+  const response = await api.post("/api/upload/voice", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+  return response;
+};

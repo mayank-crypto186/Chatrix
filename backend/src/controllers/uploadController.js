@@ -118,4 +118,33 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { uploadFile, uploadAvatar, updateProfile };
+// exports moved to bottom
+// POST /api/upload/voice — upload voice message to Cloudinary
+const uploadVoice = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No audio file provided" });
+    }
+
+    const result = await streamUploadToCloudinary(req.file.buffer, {
+      resource_type: "video", // Cloudinary uses "video" for audio files
+      folder: "chatrix_voice_messages",
+      use_filename: true,
+      unique_filename: true,
+    });
+
+    res.json({
+      url: result.secure_url,
+      publicId: result.public_id,
+      duration: result.duration || 0,
+      size: req.file.size,
+      fileType: "voice",
+      originalName: req.file.originalname,
+    });
+  } catch (error) {
+    console.error("Voice upload error:", error);
+    res.status(500).json({ message: "Voice upload failed", error: error.message });
+  }
+};
+
+module.exports = { uploadFile, uploadAvatar, updateProfile, uploadVoice };

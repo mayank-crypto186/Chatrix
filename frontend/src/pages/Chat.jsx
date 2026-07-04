@@ -16,6 +16,8 @@ import {
   Image as ImageIcon,
   Pencil,
   Trash2,
+  Mic,
+  Square,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "../styles/Chat.css";
@@ -28,7 +30,7 @@ import {
   markAsRead,
 } from "../api/messageApi";
 import { getFriends, getFriendProfile } from "../api/friendApi";
-import { uploadAttachment } from "../api/uploadApi";
+import { uploadAttachment, uploadVoiceMessage } from "../api/uploadApi";
 
 function Chat() {
   const { friendId } = useParams();
@@ -62,6 +64,15 @@ function Chat() {
   const [attachmentPreview, setAttachmentPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+
+  // Voice message state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [voiceUploading, setVoiceUploading] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
@@ -405,6 +416,139 @@ function Chat() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+
+  // ── Voice message handlers ───────────────────────────────────
+
+  const startRecording = async () => {
+    if (!activeFriend) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        await sendVoiceMessage(blob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((s) => {
+          if (s >= 120) { stopRecording(); return s; } // 2 min max
+          return s + 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setError("Microphone access denied. Please allow microphone access.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(recordingTimerRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = null; // prevent sendVoiceMessage from firing
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream?.getTracks().forEach((t) => t.stop());
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+    clearInterval(recordingTimerRef.current);
+    audioChunksRef.current = [];
+  };
+
+  const sendVoiceMessage = async (blob) => {
+    const tempId = `temp-voice-${Date.now()}`;
+    const localUrl = URL.createObjectURL(blob);
+
+    const optimisticMsg = {
+      id: tempId,
+      sender: "me",
+      text: null,
+      time: getCurrentTime(),
+      status: "sent",
+      replyToMessage: null,
+      reactions: [],
+      myReaction: null,
+      attachment: {
+        url: localUrl,
+        fileType: "voice",
+        originalName: "Voice message",
+        size: blob.size,
+        isUploading: true,
+        duration: recordingSeconds,
+      },
+    };
+
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setRecordingSeconds(0);
+    setVoiceUploading(true);
+
+    try {
+      const uploadRes = await uploadVoiceMessage(blob);
+      const uploaded = uploadRes.data;
+
+      const response = await sendMessage(activeFriend.id, null, null, {
+        ...uploaded,
+        fileType: "voice",
+      });
+      const saved = response.data;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === tempId
+            ? {
+                id: saved.id,
+                sender: "me",
+                text: null,
+                time: new Date(saved.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                replyToMessage: null,
+                reactions: [],
+                myReaction: null,
+                attachment: saved.attachment || {
+                  url: uploaded.url,
+                  fileType: "voice",
+                  originalName: "Voice message",
+                  size: uploaded.size,
+                  duration: uploaded.duration,
+                },
+              }
+            : m
+        )
+      );
+      URL.revokeObjectURL(localUrl);
+    } catch (err) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setError("Failed to send voice message.");
+    } finally {
+      setVoiceUploading(false);
+    }
+  };
+
+  const formatRecordingTime = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   // ── Send ────────────────────────────────────────────────────
 
   const handleSend = async (e) => {
@@ -637,6 +781,33 @@ function Chat() {
             className="attachment-image"
             onClick={() => !attachment.isUploading && window.open(attachment.url, "_blank")}
           />
+        </div>
+      );
+    }
+
+    // Voice message bubble
+    if (attachment.fileType === "voice") {
+      return (
+        <div className={`voice-message-bubble ${isMe ? "voice-me" : "voice-other"} ${attachment.isUploading ? "uploading" : ""}`}>
+          {attachment.isUploading ? (
+            <div className="voice-uploading">
+              <div className="upload-spinner" />
+              <span>Sending voice…</span>
+            </div>
+          ) : (
+            <>
+              <div className="voice-play-icon">🎤</div>
+              <audio
+                controls
+                src={attachment.url}
+                className="voice-audio"
+                preload="metadata"
+              />
+              {attachment.duration > 0 && (
+                <span className="voice-duration">{formatRecordingTime(attachment.duration)}</span>
+              )}
+            </>
+          )}
         </div>
       );
     }
@@ -1135,22 +1306,65 @@ function Chat() {
               disabled={!activeFriend || uploading}
             />
 
-            <button
-              type="submit"
-              className="send-btn"
-              disabled={
-                !activeFriend ||
-                uploading ||
-                (!messageText.trim() && !attachmentPreview)
-              }
-            >
-              {uploading ? (
-                <div className="upload-spinner send-spinner" />
-              ) : (
-                <Send size={18} />
-              )}
-            </button>
+            {/* Show mic when input is empty and no attachment; show send otherwise */}
+            {!messageText.trim() && !attachmentPreview && !isRecording ? (
+              <button
+                type="button"
+                className={`send-btn mic-btn ${voiceUploading ? "uploading" : ""}`}
+                onMouseDown={startRecording}
+                onTouchStart={startRecording}
+                disabled={!activeFriend || voiceUploading}
+                title="Hold to record"
+              >
+                {voiceUploading ? (
+                  <div className="upload-spinner send-spinner" />
+                ) : (
+                  <Mic size={18} />
+                )}
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="send-btn"
+                disabled={
+                  !activeFriend ||
+                  uploading ||
+                  (!messageText.trim() && !attachmentPreview)
+                }
+              >
+                {uploading ? (
+                  <div className="upload-spinner send-spinner" />
+                ) : (
+                  <Send size={18} />
+                )}
+              </button>
+            )}
           </form>
+
+          {/* Recording overlay */}
+          {isRecording && (
+            <div className="recording-overlay">
+              <div className="recording-pulse" />
+              <span className="recording-label">🎤 Recording…</span>
+              <span className="recording-timer">{formatRecordingTime(recordingSeconds)}</span>
+              <div className="recording-actions">
+                <button
+                  type="button"
+                  className="recording-cancel-btn"
+                  onClick={cancelRecording}
+                >
+                  ✕ Cancel
+                </button>
+                <button
+                  type="button"
+                  className="recording-stop-btn"
+                  onClick={stopRecording}
+                >
+                  <Square size={14} /> Send
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
